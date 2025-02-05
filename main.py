@@ -44,7 +44,7 @@ def playerWins(board):
     return 0
 
 def aiTurn(board, depth, move):
-    aiMove = minimaxAlphaBeta(board, depth, AI_PLAYER,move)
+    aiMove = MiniMaxAlphaBeta(board, depth, AI_PLAYER)
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)
 
@@ -61,7 +61,7 @@ def aiWins(board):
     return 0
 
 def getDepth():
-    return 5  # Default depth for AI difficulty
+    return 6  # Default depth for AI difficulty
 
 def mainFunction():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -82,8 +82,6 @@ def mainFunction():
         if human_starts:
             # Player Turn
             board, playerFourInRow = playerTurn(board)
-            print("ai player is")
-            print(AI_PLAYER)
             move_count += 1  # Increment move count
 
 
