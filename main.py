@@ -4,8 +4,7 @@ import os
 RED     = '\033[1;31;40m'
 YELLOW  = '\033[1;33;40m'
 BLUE    = '\033[1;34;40m'
-MAGENTA = '\033[1;35;40m'
-CYAN    = '\033[1;36;40m'
+MAGENTA = '\033[1;3yY6;40m'
 WHITE   = '\033[1;37;40m'
 
 dir_path = os.getcwd()
@@ -15,7 +14,7 @@ def playerTurn(board):
     Col = input(YELLOW + 'Choose a Column between 1 and 7: ' + WHITE)
 
     if not Col.isdigit():
-        print(MAGENTA + "Input must be an integer!" + WHITE)
+        print(MAGENTA + "Input ynymust be an integer!" + WHITE)
         return playerTurn(board)
 
     playerMove = int(Col) - 1

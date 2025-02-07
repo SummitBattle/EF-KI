@@ -1,23 +1,25 @@
 from board import *
 from random import shuffle
+from copy import deepcopy
 
-def MiniMaxAlphaBeta(board,depth,player):
-
+def MiniMaxAlphaBeta(board, depth, player):
     valid_moves = getValidMoves(board)
-    shuffle(valid_moves)
+    if not valid_moves:
+        return None  # No moves possible
+
+    shuffle(valid_moves)  # Add randomness to move selection
     best_move = valid_moves[0]
     best_score = float("-inf")
 
     alpha = float("-inf")
-    beta = float ("inf")
+    beta = float("inf")
 
-    if player == AI_PLAYER: opponent = HUMAN_PLAYER
-    else:
-        opponent = AI_PLAYER
+    opponent = HUMAN_PLAYER if player == AI_PLAYER else AI_PLAYER
 
     for move in valid_moves:
-        tempboard = makeMove(board,move,player)[0]
-        board_score = minimizeBeta(tempboard, depth - 1, alpha, beta ,player, opponent)
+        temp_board = deepcopy(board)
+        temp_board = makeMove(temp_board, move, player)[0]
+        board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
 
         if board_score > best_score:
             best_score = board_score
@@ -26,65 +28,35 @@ def MiniMaxAlphaBeta(board,depth,player):
     return best_move
 
 
-def minimizeBeta(tempboard, depth, a, b, player, opponent):
+def minimizeBeta(board, depth, alpha, beta, player, opponent):
+    valid_moves = getValidMoves(board)
 
-    valid_moves = []
-
-    for col in range(7):
-        if isValidMove(col,tempboard):
-            move = makeMove(tempboard, col, player)[2]
-            valid_moves.append(move)
-
-    if depth == 0 or len(valid_moves) == 0 or gameIsOver(tempboard):
-        return utilityValue(tempboard, player)
-
-    beta = b
-    valid_moves = getValidMoves(tempboard)
+    if depth == 0 or not valid_moves or gameIsOver(board):
+        return utilityValue(board, player)
 
     for move in valid_moves:
-        boardscore = float("inf")
+        if alpha < beta:
+            temp_board = deepcopy(board)
+            temp_board = makeMove(temp_board, move, opponent)[0]
+            board_score = maximizeAlpha(temp_board, depth - 1, alpha, beta, player, opponent)
 
-        if a < beta:
-            tempboard = makeMove(tempboard,move,opponent)[0]
-            boardscore = maximizeAlpha(tempboard, depth - 1, a, beta, player, opponent)
-
-        if boardscore < beta:
-            beta = boardscore
+            beta = min(beta, board_score)
 
     return beta
 
-def maximizeAlpha(board, depth, a, b, player, opponent):
-    validMoves = []
-    for col in range(7):
-        # if column col is a legal move...
-        if isValidMove(col, board):
-            # make the move in column col for curr_player
-            temp = makeMove(board, col, player)[2]
-            validMoves.append(temp)
-    # check to see if game over
-    if depth == 0 or len(validMoves) == 0 or gameIsOver(board):
+
+def maximizeAlpha(board, depth, alpha, beta, player, opponent):
+    valid_moves = getValidMoves(board)
+
+    if depth == 0 or not valid_moves or gameIsOver(board):
         return utilityValue(board, player)
 
-    alpha = a
-    # if end of tree, evaluate scores
-    for move in validMoves:
-        boardScore = float("-inf")
-        if alpha < b:
-            tempBoard = makeMove(board, move, player)[0]
-            boardScore = minimizeBeta(tempBoard, depth - 1, alpha, b, player, opponent)
+    for move in valid_moves:
+        if alpha < beta:
+            temp_board = deepcopy(board)
+            temp_board = makeMove(temp_board, move, player)[0]
+            board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
 
-        if boardScore > alpha:
-            alpha = boardScore
+            alpha = max(alpha, board_score)
+
     return alpha
-
-
-
-
-
-
-
-
-
-
-
-

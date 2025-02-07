@@ -109,6 +109,8 @@ def utilityValue(board, player):
         #This means that the current player lost the game 
         #So return the biggest negative value => -infinity 
         return float('-inf')
+    if playerfours > 0:
+        return float('inf')
     else:
         #Return the playerScore minus the opponentScore
         return playerScore - opponentScore
