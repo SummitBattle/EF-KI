@@ -40,6 +40,7 @@ def minimizeBeta(board, depth, alpha, beta, player, opponent):
             temp_board = makeMove(temp_board, move, opponent)[0]
             board_score = maximizeAlpha(temp_board, depth - 1, alpha, beta, player, opponent)
 
+
             beta = min(beta, board_score)
 
     return beta
