@@ -1,7 +1,7 @@
 import os
 import math
 from copy import deepcopy
-from utility import *
+from EvaluationFunction import *
 
 RED     = '\033[1;31;40m'
 RED_BG  = '\033[0;31;47m'

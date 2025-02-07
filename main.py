@@ -47,7 +47,7 @@ def aiTurn(board, depth, move):
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)
 
-    return board, aiFourInRow
+    return board, aiFourInRow, aiMove
 
 def aiWins(board):
     printBoard(board)
@@ -59,15 +59,13 @@ def aiWins(board):
 
     return 0
 
-def getDepth():
-    return 6  # Default depth for AI difficulty
 
 def mainFunction():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     board = initializeBoard()
     printBoard(board)
-    depth = getDepth()
+    depth = 7
     move_count = 0  # Track the number of moves
 
     whileCondition = 1
@@ -90,8 +88,9 @@ def mainFunction():
                     break
 
             # AI Turn
-            board, aiFourInRow = aiTurn(board, depth, move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board, depth, move_count)
             move_count += 1  # Increment move count
+            print(f" AI MOVE WAS: {AIMOVE + 1}")
 
             if aiFourInRow:
                 whileCondition = aiWins(board)
@@ -102,7 +101,7 @@ def mainFunction():
 
         else:
             # AI Turn First
-            board, aiFourInRow = aiTurn(board, depth, move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board, depth, move_count)
             move_count += 1  # Increment move count
 
             if aiFourInRow:
@@ -111,6 +110,7 @@ def mainFunction():
                     break
 
             printBoard(board)
+            print(f" AI MOVE WAS: {AIMOVE+1}")
 
             # Player Turn
             board, playerFourInRow = playerTurn(board)
