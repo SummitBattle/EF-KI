@@ -1,4 +1,5 @@
-from minimaxAlphaBeta import *
+import ConnectAlgorithm
+from ConnectAlgorithm import *
 import os
 
 RED     = '\033[1;31;40m'
@@ -43,7 +44,7 @@ def playerWins(board):
     return 0
 
 def aiTurn(board, depth, move):
-    aiMove = MiniMaxAlphaBeta(board, depth, AI_PLAYER)
+    aiMove = ConnectAlgorithm.start_MCTS(board, depth=depth)
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)
 
