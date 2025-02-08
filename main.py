@@ -2,6 +2,7 @@ import ConnectAlgorithm
 from ConnectAlgorithm import *
 import os
 
+
 RED     = '\033[1;31;40m'
 YELLOW  = '\033[1;33;40m'
 BLUE    = '\033[1;34;40m'
@@ -122,7 +123,6 @@ def mainFunction():
                 whileCondition = playerWins(board)
                 if whileCondition == 0:
                     break
-
             printBoard(board)
 
 # Start the game

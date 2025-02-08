@@ -1,14 +1,14 @@
+from EvaluationFunction import utilityValue
 from board import *
 from random import shuffle
-from copy import deepcopy
 
 def MiniMaxAlphaBeta(board, depth, player):
     valid_moves = getValidMoves(board)
     if not valid_moves:
-        return None  # No moves possible
+        return None, utilityValue(board, player)  # No moves possible, return score only
 
     shuffle(valid_moves)  # Add randomness to move selection
-    best_move = valid_moves[0]
+    best_move = None
     best_score = float("-inf")
 
     alpha = float("-inf")
@@ -25,8 +25,11 @@ def MiniMaxAlphaBeta(board, depth, player):
             best_score = board_score
             best_move = move
 
-    return best_move
+        alpha = max(alpha, best_score)
+        if alpha >= beta:  # Alpha-beta pruning
+            break
 
+    return best_move, best_score  # Now returning BOTH move and score
 
 def minimizeBeta(board, depth, alpha, beta, player, opponent):
     valid_moves = getValidMoves(board)
@@ -35,13 +38,13 @@ def minimizeBeta(board, depth, alpha, beta, player, opponent):
         return utilityValue(board, player)
 
     for move in valid_moves:
-        if alpha < beta:
-            temp_board = deepcopy(board)
-            temp_board = makeMove(temp_board, move, opponent)[0]
-            board_score = maximizeAlpha(temp_board, depth - 1, alpha, beta, player, opponent)
+        temp_board = deepcopy(board)
+        temp_board = makeMove(temp_board, move, opponent)[0]
+        board_score = maximizeAlpha(temp_board, depth - 1, alpha, beta, player, opponent)
 
-
-            beta = min(beta, board_score)
+        beta = min(beta, board_score)
+        if alpha >= beta:  # Pruning condition
+            break
 
     return beta
 
@@ -53,11 +56,12 @@ def maximizeAlpha(board, depth, alpha, beta, player, opponent):
         return utilityValue(board, player)
 
     for move in valid_moves:
-        if alpha < beta:
-            temp_board = deepcopy(board)
-            temp_board = makeMove(temp_board, move, player)[0]
-            board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
+        temp_board = deepcopy(board)
+        temp_board = makeMove(temp_board, move, player)[0]
+        board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
 
-            alpha = max(alpha, board_score)
+        alpha = max(alpha, board_score)
+        if alpha >= beta:  # Pruning condition
+            break
 
     return alpha
