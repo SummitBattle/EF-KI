@@ -66,7 +66,7 @@ def mainFunction():
 
     board = initializeBoard()
     printBoard(board)
-    depth = 7
+    depth = 4
     move_count = 0  # Track the number of moves
 
     whileCondition = 1
@@ -91,7 +91,7 @@ def mainFunction():
             # AI Turn
             board, aiFourInRow, AIMOVE = aiTurn(board, depth, move_count)
             move_count += 1  # Increment move count
-            print(f" AI MOVE WAS: {AIMOVE + 1}")
+
 
             if aiFourInRow:
                 whileCondition = aiWins(board)
@@ -99,6 +99,7 @@ def mainFunction():
                     break
 
             printBoard(board)
+            print(f" AI MOVE WAS: {AIMOVE + 1}")
 
         else:
             # AI Turn First
