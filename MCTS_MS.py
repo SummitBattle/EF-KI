@@ -17,7 +17,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 3  # Exploration constant
+        self.c = 5  # Exploration constant
         self.reward = reward
 
     def getUCTscore(self):
