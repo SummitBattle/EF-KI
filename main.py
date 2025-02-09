@@ -2,7 +2,6 @@ import ConnectAlgorithm
 from ConnectAlgorithm import *
 import os
 
-
 RED     = '\033[1;31;40m'
 YELLOW  = '\033[1;33;40m'
 BLUE    = '\033[1;34;40m'
@@ -60,8 +59,6 @@ def aiWins(board):
         mainFunction()
 
     return 0
-
-
 def mainFunction():
     os.system('cls' if os.name == 'nt' else 'clear')
 

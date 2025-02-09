@@ -1,11 +1,10 @@
-from EvaluationFunction import utilityValue
+from utility_functions import EndValue
 from board import *
 from random import shuffle
+from utility_functions import *
 
 def MiniMaxAlphaBeta(board, depth, player):
     valid_moves = getValidMoves(board)
-    if not valid_moves:
-        return None, utilityValue(board, player)  # No moves possible, return score only
 
     shuffle(valid_moves)  # Add randomness to move selection
     best_move = None
@@ -53,7 +52,7 @@ def maximizeAlpha(board, depth, alpha, beta, player, opponent):
     valid_moves = getValidMoves(board)
 
     if depth == 0 or not valid_moves or gameIsOver(board):
-        return utilityValue(board, player)
+        return utilityValue(board,player)
 
     for move in valid_moves:
         temp_board = deepcopy(board)
