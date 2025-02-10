@@ -1,5 +1,6 @@
 import random
 import time
+import logging
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -7,6 +8,7 @@ from board import *
 from copy import deepcopy
 
 from utility_functions import utilityValue, gameIsOver, AI_PLAYER, HUMAN_PLAYER, countSequence
+
 
 class Node:
     def __init__(self, game_state, done, parent_node, action_index, reward):
@@ -17,7 +19,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 5  # Exploration constant
+        self.c = 1.7  # Exploration constant
         self.reward = reward
 
     def getUCTscore(self):
@@ -41,7 +43,7 @@ class Node:
             reward = EndValue(child_board_state, AI_PLAYER)
             self.child_nodes[action] = Node(child_board_state, done, self, action, reward)
 
-    def explore(self, minimax_depth=3, min_rollouts=1000, min_time=8.0):
+    def explore(self, minimax_depth=3, min_rollouts=200, min_time=0.0):
         """Select the best child node based on UCT or expand a new node if possible."""
         start_time = time.time()
         rollouts = 0
@@ -49,6 +51,7 @@ class Node:
         while rollouts < min_rollouts or (time.time() - start_time) < min_time:
             current = self
 
+            # Traverse the tree until a leaf node is reached
             while current.child_nodes:
                 child_scores = {a: c.getUCTscore() for a, c in current.child_nodes.items()}
                 max_U = max(child_scores.values())
@@ -57,41 +60,38 @@ class Node:
                 action = random.choice(best_actions)
                 current = current.child_nodes[action]
 
-                current.reward = self.rollout(minimax_depth)
+            # Perform rollouts from this leaf node
+            if not current.child_nodes:
+                current.create_child_nodes()
+                if current.child_nodes:
+                    current = random.choice(list(current.child_nodes.values()))
 
-            current.create_child_nodes()
-            if current.child_nodes:
-                current = random.choice(list(current.child_nodes.values()))
+            current.reward = self.rollout(minimax_depth)
 
-            current.visits += 1
+            rollouts += 1
+
+            # Backpropagate the reward
             parent = current
             while parent:
                 parent.visits += 1
                 parent.node_value += current.reward
+                logging.debug(f'Backpropagating Reward: {current.reward} to Parent: {id(parent)}')
                 parent = parent.parent
 
-            rollouts += 1
-            print(rollouts)
-            if rollouts % 4000 == 0:  # Visualize every 10 rollouts
-                self.visualize(max_depth=3, min_visits=0)
+        return self
 
     def rollout(self, minimax_depth):
         new_board = deepcopy(self.game_state)
         current_player = AI_PLAYER
 
-        while True:
-
+        while not gameIsOver(new_board):
             valid_moves = getValidMoves(new_board)
 
             if not valid_moves:
-                return 0.5
-
-                # Otherwise, use a random move
-
-            action = random.choice(valid_moves)
-
-            if action == None:
                 return 0.5  # Draw (no valid moves left)
+
+            # Use a random move
+            action = random.choice(valid_moves)
 
             # Apply the chosen move
             new_board, _, _ = makeMove(new_board, action, current_player)
@@ -102,6 +102,8 @@ class Node:
 
             # Switch players
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
+
+        return EndValue(new_board, AI_PLAYER)
 
     def next(self):
         """Return the best child based on visit count."""
@@ -117,7 +119,7 @@ class Node:
         best_child = random.choice(best_children)
         return best_child, best_child.action_index
 
-    def visualize(self, max_depth=3, min_visits=10):
+    def visualize(self, max_depth=3, min_visits=0):
         """Visualize the current state of the MCTS tree up to a max depth and min visits."""
         G = nx.DiGraph()
         self._add_node_to_graph(G, self, depth=0, max_depth=max_depth, min_visits=min_visits)
@@ -165,4 +167,3 @@ class Node:
                 nextx += dx
                 pos.update(self.hierarchy_pos(G, neighbor, width=dx, vert_gap=vert_gap, vert_loc=vert_loc - vert_gap, xcenter=nextx))
         return pos
-

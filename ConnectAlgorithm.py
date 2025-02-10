@@ -19,8 +19,6 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, dept
 
     if next_tree is None:
         raise ValueError("MCTS failed to find the next move.")
-    print(next_action)
-    print(next_action)
-    print(next_action)
-    print(next_action)
+
+    logging.info(f'Next Action: {next_action}')
     return next_action

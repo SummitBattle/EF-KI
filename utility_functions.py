@@ -94,11 +94,11 @@ def EndValue(board, player):
         opponent = HUMAN_PLAYER
 
     if countSequence(board, player, 4) >= 1:
-        return 1  # Win
+        return 0.5  # Win
     elif countSequence(board, opponent, 4) >= 1:
         return -2  # Loss
     else:
-        return 0.5
+        return 0
     # Draw or intermediate state
 
 def utilityValue(board, player):

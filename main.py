@@ -1,6 +1,10 @@
+
 import ConnectAlgorithm
-from ConnectAlgorithm import *
 import os
+
+from minimaxAlphaBeta import MiniMaxAlphaBeta
+from board import findFours, isColumnValid, printBoard, initializeBoard, isBoardFilled, makeMove
+from utility_functions import AI_PLAYER, HUMAN_PLAYER
 
 RED     = '\033[1;31;40m'
 YELLOW  = '\033[1;33;40m'
@@ -11,11 +15,12 @@ WHITE   = '\033[1;37;40m'
 dir_path = os.getcwd()
 os.chdir(dir_path)
 
+global move_count
 def playerTurn(board):
     Col = input(YELLOW + 'Choose a Column between 1 and 7: ' + WHITE)
 
     if not Col.isdigit():
-        print(MAGENTA + "Input ynymust be an integer!" + WHITE)
+        print(MAGENTA + "Input must be an integer!" + WHITE)
         return playerTurn(board)
 
     playerMove = int(Col) - 1
@@ -43,11 +48,17 @@ def playerWins(board):
 
     return 0
 
-def aiTurn(board, depth, move):
+def aiTurn(board, move_count):
+
+    depth = 5
+    #if move_count >= 15:
+
     aiMove = ConnectAlgorithm.start_MCTS(board, depth=depth)
+    #else:
+   # aiMove, _ = MiniMaxAlphaBeta(board,depth,AI_PLAYER)
+
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)
-
     return board, aiFourInRow, aiMove
 
 def aiWins(board):
@@ -64,8 +75,7 @@ def mainFunction():
 
     board = initializeBoard()
     printBoard(board)
-    depth = 4
-    move_count = 0  # Track the number of moves
+    move_count = 0
 
     whileCondition = 1
     human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
@@ -87,7 +97,7 @@ def mainFunction():
                     break
 
             # AI Turn
-            board, aiFourInRow, AIMOVE = aiTurn(board, depth, move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board,  move_count)
             move_count += 1  # Increment move count
 
 
@@ -101,7 +111,7 @@ def mainFunction():
 
         else:
             # AI Turn First
-            board, aiFourInRow, AIMOVE = aiTurn(board, depth, move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board, move_count)
             move_count += 1  # Increment move count
 
             if aiFourInRow:
