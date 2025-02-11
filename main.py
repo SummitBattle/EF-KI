@@ -49,13 +49,10 @@ def playerWins(board):
     return 0
 
 def aiTurn(board, move_count):
-
     depth = 5
-    #if move_count >= 15:
+
 
     aiMove = ConnectAlgorithm.start_MCTS(board, depth=depth)
-    #else:
-   # aiMove, _ = MiniMaxAlphaBeta(board,depth,AI_PLAYER)
 
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)

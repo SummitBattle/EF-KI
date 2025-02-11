@@ -11,7 +11,7 @@ from utility_functions import utilityValue, gameIsOver, AI_PLAYER, HUMAN_PLAYER,
 
 
 class Node:
-    def __init__(self, game_state, done, parent_node, action_index, reward):
+    def __init__(self, game_state, done, parent_node, action_index, ):
         self.parent = parent_node
         self.child_nodes = {}
         self.visits = 0
@@ -19,8 +19,8 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.7  # Exploration constant
-        self.reward = reward
+        self.c = 1.4 # Exploration constant
+        self.reward = 0
 
     def getUCTscore(self):
         """Calculate the UCT score for this node."""
@@ -40,10 +40,9 @@ class Node:
             child_board_state = result[0]
 
             done = gameIsOver(child_board_state)
-            reward = EndValue(child_board_state, AI_PLAYER)
-            self.child_nodes[action] = Node(child_board_state, done, self, action, reward)
+            self.child_nodes[action] = Node(child_board_state, done, self, action,)
 
-    def explore(self, minimax_depth=3, min_rollouts=200, min_time=0.0):
+    def explore(self, minimax_depth=3, min_rollouts=2000, min_time=0.0):
         """Select the best child node based on UCT or expand a new node if possible."""
         start_time = time.time()
         rollouts = 0
@@ -51,7 +50,7 @@ class Node:
         while rollouts < min_rollouts or (time.time() - start_time) < min_time:
             current = self
 
-            # Traverse the tree until a leaf node is reached
+            # **Selection Phase**: Traverse down using UCT scores
             while current.child_nodes:
                 child_scores = {a: c.getUCTscore() for a, c in current.child_nodes.items()}
                 max_U = max(child_scores.values())
@@ -60,23 +59,23 @@ class Node:
                 action = random.choice(best_actions)
                 current = current.child_nodes[action]
 
-            # Perform rollouts from this leaf node
-            if not current.child_nodes:
+            # **Expansion Phase**: Expand if not terminal
+            if not current.done:
                 current.create_child_nodes()
                 if current.child_nodes:
                     current = random.choice(list(current.child_nodes.values()))
 
-            current.reward = self.rollout(minimax_depth)
+                    # **Simulation Phase**: Rollout to estimate value
+            current.reward = current.rollout(minimax_depth)
 
-            rollouts += 1
-
-            # Backpropagate the reward
+            # **Backpropagation Phase**: Update parent nodes
             parent = current
             while parent:
                 parent.visits += 1
                 parent.node_value += current.reward
-                logging.debug(f'Backpropagating Reward: {current.reward} to Parent: {id(parent)}')
                 parent = parent.parent
+
+            rollouts += 1
 
         return self
 
@@ -102,6 +101,8 @@ class Node:
 
             # Switch players
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
+
+
 
         return EndValue(new_board, AI_PLAYER)
 
