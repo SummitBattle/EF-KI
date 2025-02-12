@@ -17,7 +17,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.4  # Exploration constant
+        self.c = 1  # Exploration constant
         self.reward = 0
         self.starting_player = starting_player
 
@@ -54,12 +54,16 @@ class Node:
 
             self.child_nodes[action] = Node(child_board_state, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=3, min_rollouts=2000, min_time=0.0):
-        """Select the best child node based on UCT or expand a new node if possible."""
+    def explore(self, minimax_depth=3, min_rollouts=100000, min_time=0.0, max_time=8.0):
+        """Select the best child node based on UCT or expand a new node if possible.
+
+        Stops when min_rollouts are done OR min_time is reached, but enforces a hard stop at max_time.
+        """
         start_time = time.time()
         rollouts = 0
 
-        while rollouts < min_rollouts or (time.time() - start_time) < min_time:
+        while (rollouts < min_rollouts or (time.time() - start_time) < min_time) and (
+                time.time() - start_time) < max_time:
             current = self
 
             # **Selection Phase**: Traverse down using UCT scores
@@ -88,6 +92,10 @@ class Node:
                 parent = parent.parent
 
             rollouts += 1
+        end_time = time.time()  # Capture the end time
+        elapsed_time = end_time - start_time  # Calculate elapsed time
+        print(f"Total exploration time: {elapsed_time:.2f} seconds")  # Print elapsed time
+        print(rollouts)
 
         return self
 
@@ -114,7 +122,10 @@ class Node:
             # **Make a random move**
             action = random.choice(valid_moves)
 
+
+
             new_board, _, _ = makeMove(new_board, action, current_player)
+
 
 
             # **Check if the game is over**
