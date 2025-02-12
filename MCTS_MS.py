@@ -5,6 +5,7 @@ import logging
 from board import *
 from copy import deepcopy
 
+from minimaxAlphaBeta import MiniMaxAlphaBeta
 from utility_functions import utilityValue, gameIsOver, AI_PLAYER, HUMAN_PLAYER, countSequence
 
 
@@ -17,7 +18,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1  # Exploration constant
+        self.c = 1.4  # Exploration constant
         self.reward = 0
         self.starting_player = starting_player
 
@@ -99,40 +100,32 @@ class Node:
 
         return self
 
-    def rollout(self, minimax_depth):
-        """Simulates a random playout from the current state and returns a reward score."""
-
-        # Count moves to determine whose turn it is
+    def rollout(self, minimax_depth: int = 2) -> float:
+        """Simulate a game using Minimax during rollouts."""
         ai_moves = sum(row.count(AI_PLAYER) for row in self.game_state)
         human_moves = sum(row.count(HUMAN_PLAYER) for row in self.game_state)
-
-        # Determine the next player based on move count and who started first
-        if self.starting_player == AI_PLAYER:
-            current_player = AI_PLAYER if ai_moves == human_moves else HUMAN_PLAYER
-        else:
-            current_player = HUMAN_PLAYER if human_moves == ai_moves else AI_PLAYER
-
+        current_player = AI_PLAYER if (ai_moves == human_moves and self.starting_player == AI_PLAYER) else HUMAN_PLAYER
         new_board = deepcopy(self.game_state)
 
+        # If the game is over at this node, return the result
+        if gameIsOver(new_board):
+            return EndValue(new_board, AI_PLAYER)
+
+        # Use Minimax for the first move in the rollout
+        best_move, _ = MiniMaxAlphaBeta(new_board, minimax_depth, current_player)
+        if best_move is not None:
+            new_board, _, _ = makeMove(new_board, best_move, current_player)
+            if gameIsOver(new_board):
+                return EndValue(new_board, AI_PLAYER)
+
+        # Continue with random moves if Minimax doesn't end the game
+        current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
         while not gameIsOver(new_board):
             valid_moves = getValidMoves(new_board)
             if not valid_moves:
-                return 0.5  # Draw if no moves left
-
-            # **Make a random move**
+                return 0.5  # Draw if no moves are available
             action = random.choice(valid_moves)
-
-
-
             new_board, _, _ = makeMove(new_board, action, current_player)
-
-
-
-            # **Check if the game is over**
-            if gameIsOver(new_board):
-                return EndValue(new_board, AI_PLAYER)  # AI's perspective
-
-            # **Switch turns**
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
 
         return EndValue(new_board, AI_PLAYER)
@@ -154,27 +147,12 @@ class Node:
         return best_child, best_child.action_index
 
     def movePlayer(self, playerMove):
-
-
-        # Find the child node that matches the player's move
-        new_node = [child for child in self.child_nodes.values() if child.action_index == playerMove]
-
-
-        if new_node:
-            new_root = new_node[0]  # There should be only one matching node
-
-
-        else:
-
-
-            # Make the move on the current game state
-            game_state, _, _ = makeMove(self.game_state, playerMove, HUMAN_PLAYER)
-
-            # Check if the game is over
-            done = gameIsOver(game_state)
-
-            # Create a new node with the updated game state
-            new_root = Node(game_state, done, None, playerMove)
-
-        new_root.parent = None
+        """Update the node tree with the player's move and return the new root."""
+        # Use `setdefault` to either get the existing child node or create a new one
+        new_root = self.child_nodes.setdefault(playerMove,
+                                               Node(*makeMove(self.game_state, playerMove, HUMAN_PLAYER)[:1],
+                                                    gameIsOver(self.game_state),
+                                                    self,
+                                                    playerMove,
+                                                    self.starting_player))
         return new_root
