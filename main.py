@@ -16,6 +16,7 @@ dir_path = os.getcwd()
 os.chdir(dir_path)
 
 global move_count
+parent_node = None
 def playerTurn(board):
     Col = input(YELLOW + 'Choose a Column between 1 and 7: ' + WHITE)
 
@@ -49,14 +50,11 @@ def playerWins(board):
     return 0
 
 def aiTurn(board, move_count):
+    global parent_node
 
     depth = 5
-    #if move_count >= 15:
 
-    aiMove = ConnectAlgorithm.start_MCTS(board, depth=depth)
-    #else:
-   # aiMove, _ = MiniMaxAlphaBeta(board,depth,AI_PLAYER)
-
+    aiMove, parent_node = ConnectAlgorithm.start_MCTS(board, parent_node = parent_node, depth = depth)
     board = makeMove(board, aiMove, AI_PLAYER)[0]
     aiFourInRow = findFours(board)
     return board, aiFourInRow, aiMove

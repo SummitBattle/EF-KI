@@ -19,7 +19,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.7  # Exploration constant
+        self.c = 1.2  # Exploration constant
         self.reward = reward
 
     def getUCTscore(self):
@@ -43,7 +43,7 @@ class Node:
             reward = EndValue(child_board_state, AI_PLAYER)
             self.child_nodes[action] = Node(child_board_state, done, self, action, reward)
 
-    def explore(self, minimax_depth=3, min_rollouts=200, min_time=0.0):
+    def explore(self, minimax_depth=3, min_rollouts=2000, min_time=0.0):
         """Select the best child node based on UCT or expand a new node if possible."""
         start_time = time.time()
         rollouts = 0

@@ -5,7 +5,10 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, dept
     """Runs MCTS with Minimax and returns the next action."""
 
     # Initialize the root node of the search tree
-    node = Node(game_state, done, parent_node, action_index, reward)
+    if parent_node is None:
+        node = Node(game_state, done, None, action_index, reward)
+    else:
+        node = parent_node
 
     # If the game is already over, return None or some other fallback behavior
     if done:
@@ -21,4 +24,4 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, dept
         raise ValueError("MCTS failed to find the next move.")
 
     logging.info(f'Next Action: {next_action}')
-    return next_action
+    return next_action, next_tree
