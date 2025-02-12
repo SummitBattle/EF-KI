@@ -54,10 +54,19 @@ def aiTurn(board, move_count):
 
     depth = 5
 
-    aiMove, parent_node = ConnectAlgorithm.start_MCTS(board, parent_node = parent_node, depth = depth)
-    board = makeMove(board, aiMove, AI_PLAYER)[0]
+    # Run the MCTS algorithm to get the AI's next move
+    aiMove, parent_node = ConnectAlgorithm.start_MCTS(board, parent_node=parent_node, depth=depth)
+
+    # Make the move on the board
+    board, _,_= makeMove(board, aiMove, AI_PLAYER)
+
+
+    # Check for AI's four-in-a-row situation
     aiFourInRow = findFours(board)
+
+    # Return updated board, four-in-a-row status, and the AI's move
     return board, aiFourInRow, aiMove
+
 
 def aiWins(board):
     printBoard(board)

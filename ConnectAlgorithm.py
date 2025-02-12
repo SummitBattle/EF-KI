@@ -1,27 +1,26 @@
-from MCTS_MS import *  # Make sure Node and related classes are imported
-
+from MCTS_MS import *  # Ensure Node and related classes are imported
+import logging
 
 def start_MCTS(game_state, done=False, parent_node=None, action_index=None, depth=3, reward=0):
     """Runs MCTS with Minimax and returns the next action."""
 
-    # Initialize the root node of the search tree
-    if parent_node is None:
-        node = Node(game_state, done, None, action_index, reward)
-    else:
-        node = parent_node
-
-    # If the game is already over, return None or some other fallback behavior
+    # If the game is over, return None or an appropriate fallback action
     if done:
-        raise ValueError("The game is already over. No further moves can be made.")
+        logging.warning("The game is already over. No further moves can be made.")
+        return None, None
 
-    # Perform the exploration (including simulations, UCT updates, and backpropagation)
+    # Initialize the root node of the search tree
+    node = parent_node if parent_node is not None else Node(game_state, done, None, action_index)
+
+    # Perform exploration (including simulations, UCT updates, and backpropagation)
     node.explore(depth)
 
-    # Get the next tree and action to take based on the visits to child nodes
+    # Get the best next move and corresponding subtree
     next_tree, next_action = node.next()
 
-    if next_tree is None:
-        raise ValueError("MCTS failed to find the next move.")
+    if next_tree is None or next_action is None:
+        logging.error("MCTS failed to find the next move.")
+        return None, None  # Handle failure gracefully
 
     logging.info(f'Next Action: {next_action}')
     return next_action, next_tree
