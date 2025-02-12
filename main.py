@@ -1,4 +1,3 @@
-
 import ConnectAlgorithm
 import os
 
@@ -17,6 +16,8 @@ os.chdir(dir_path)
 
 global move_count
 parent_node = None
+
+playerMove = None
 def playerTurn(board):
     Col = input(YELLOW + 'Choose a Column between 1 and 7: ' + WHITE)
 
@@ -37,7 +38,7 @@ def playerTurn(board):
     board = makeMove(board, playerMove, HUMAN_PLAYER)[0]
     playerFourInRow = findFours(board)
 
-    return board, playerFourInRow
+    return board, playerFourInRow, playerMove
 
 def playerWins(board):
     printBoard(board)
@@ -49,24 +50,22 @@ def playerWins(board):
 
     return 0
 
-def aiTurn(board, move_count):
+def aiTurn(board, move_count, playerMove, human_start):
     global parent_node
 
     depth = 5
 
     # Run the MCTS algorithm to get the AI's next move
-    aiMove, parent_node = ConnectAlgorithm.start_MCTS(board, parent_node=parent_node, depth=depth)
+    aiMove, parent_node = ConnectAlgorithm.start_MCTS(board, parent_node=parent_node, depth=depth, playerMove=playerMove, human_starts=human_start)
 
     # Make the move on the board
-    board, _,_= makeMove(board, aiMove, AI_PLAYER)
-
+    board, _, _ = makeMove(board, aiMove, AI_PLAYER)
 
     # Check for AI's four-in-a-row situation
     aiFourInRow = findFours(board)
 
     # Return updated board, four-in-a-row status, and the AI's move
     return board, aiFourInRow, aiMove
-
 
 def aiWins(board):
     printBoard(board)
@@ -77,12 +76,14 @@ def aiWins(board):
         mainFunction()
 
     return 0
+
 def mainFunction():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     board = initializeBoard()
     printBoard(board)
     move_count = 0
+    parent_node = None
 
     whileCondition = 1
     human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
@@ -94,7 +95,7 @@ def mainFunction():
 
         if human_starts:
             # Player Turn
-            board, playerFourInRow = playerTurn(board)
+            board, playerFourInRow, playerMove = playerTurn(board)
             move_count += 1  # Increment move count
 
 
@@ -104,9 +105,8 @@ def mainFunction():
                     break
 
             # AI Turn
-            board, aiFourInRow, AIMOVE = aiTurn(board,  move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board, move_count,playerMove, human_starts)
             move_count += 1  # Increment move count
-
 
             if aiFourInRow:
                 whileCondition = aiWins(board)
@@ -118,7 +118,7 @@ def mainFunction():
 
         else:
             # AI Turn First
-            board, aiFourInRow, AIMOVE = aiTurn(board, move_count)
+            board, aiFourInRow, AIMOVE = aiTurn(board, move_count, playerMove, human_starts)
             move_count += 1  # Increment move count
 
             if aiFourInRow:
@@ -130,8 +130,9 @@ def mainFunction():
             print(f" AI MOVE WAS: {AIMOVE+1}")
 
             # Player Turn
-            board, playerFourInRow = playerTurn(board)
+            board, playerFourInRow, playerMove = playerTurn(board)
             move_count += 1  # Increment move count
+
 
             if playerFourInRow:
                 whileCondition = playerWins(board)

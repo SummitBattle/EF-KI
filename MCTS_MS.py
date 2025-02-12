@@ -2,7 +2,6 @@ import random
 import time
 import logging
 
-
 from board import *
 from copy import deepcopy
 
@@ -10,7 +9,7 @@ from utility_functions import utilityValue, gameIsOver, AI_PLAYER, HUMAN_PLAYER,
 
 
 class Node:
-    def __init__(self, game_state, done, parent_node, action_index, ):
+    def __init__(self, game_state, done, parent_node, action_index, starting_player):
         self.parent = parent_node
         self.child_nodes = {}
         self.visits = 0
@@ -18,8 +17,9 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.4 # Exploration constant
+        self.c = 1.4  # Exploration constant
         self.reward = 0
+        self.starting_player = starting_player
 
     def getUCTscore(self):
         """Calculate the UCT score for this node."""
@@ -34,14 +34,27 @@ class Node:
 
     def create_child_nodes(self):
         valid_moves = getValidMoves(self.game_state)
+
+        # Count moves to determine whose turn it is
+        ai_moves = sum(row.count(AI_PLAYER) for row in self.game_state)
+        human_moves = sum(row.count(HUMAN_PLAYER) for row in self.game_state)
+
+        # Determine the next player based on move count and who started first
+        if self.starting_player == AI_PLAYER:
+            current_player = AI_PLAYER if ai_moves == human_moves else HUMAN_PLAYER
+        else:
+            current_player = HUMAN_PLAYER if human_moves == ai_moves else AI_PLAYER
+
         for action in valid_moves:
-            result = makeMove(deepcopy(self.game_state), action, AI_PLAYER)
+            new_board = deepcopy(self.game_state)
+            result = makeMove(new_board, action, current_player)
             child_board_state = result[0]
 
             done = gameIsOver(child_board_state)
-            self.child_nodes[action] = Node(child_board_state, done, self, action)
 
-    def explore(self, minimax_depth=3, min_rollouts=500, min_time=0.0):
+            self.child_nodes[action] = Node(child_board_state, done, self, action, self.starting_player)
+
+    def explore(self, minimax_depth=3, min_rollouts=2000, min_time=0.0):
         """Select the best child node based on UCT or expand a new node if possible."""
         start_time = time.time()
         rollouts = 0
@@ -64,7 +77,7 @@ class Node:
                 if current.child_nodes:
                     current = random.choice(list(current.child_nodes.values()))
 
-                    # **Simulation Phase**: Rollout to estimate value
+            # **Simulation Phase**: Rollout to estimate value
             current.reward = current.rollout(minimax_depth)
 
             # **Backpropagation Phase**: Update parent nodes
@@ -79,29 +92,37 @@ class Node:
         return self
 
     def rollout(self, minimax_depth):
+        """Simulates a random playout from the current state and returns a reward score."""
+
+        # Count moves to determine whose turn it is
+        ai_moves = sum(row.count(AI_PLAYER) for row in self.game_state)
+        human_moves = sum(row.count(HUMAN_PLAYER) for row in self.game_state)
+
+        # Determine the next player based on move count and who started first
+        if self.starting_player == AI_PLAYER:
+            current_player = AI_PLAYER if ai_moves == human_moves else HUMAN_PLAYER
+        else:
+            current_player = HUMAN_PLAYER if human_moves == ai_moves else AI_PLAYER
+
         new_board = deepcopy(self.game_state)
-        current_player = AI_PLAYER
 
         while not gameIsOver(new_board):
             valid_moves = getValidMoves(new_board)
-
             if not valid_moves:
-                return 0.5  # Draw (no valid moves left)
+                return 0.5  # Draw if no moves left
 
-            # Use a random move
+            # **Make a random move**
             action = random.choice(valid_moves)
 
-            # Apply the chosen move
             new_board, _, _ = makeMove(new_board, action, current_player)
 
-            # Check if the game is over
+
+            # **Check if the game is over**
             if gameIsOver(new_board):
-                return EndValue(new_board, AI_PLAYER)  # Score from AI's perspective
+                return EndValue(new_board, AI_PLAYER)  # AI's perspective
 
-            # Switch players
+            # **Switch turns**
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
-
-
 
         return EndValue(new_board, AI_PLAYER)
 
@@ -115,17 +136,34 @@ class Node:
 
         # Find the most visited child node
         best_child = max(self.child_nodes.values(), key=lambda x: x.visits)
-        print(self.child_nodes)
-        print(self.child_nodes)
-        print(self.child_nodes)
-        print(self.child_nodes)
-        print(self.child_nodes)
 
         print(f"Selected Best Action: {best_child.action_index} with {best_child.visits} visits.")
-        printBoard(best_child.game_state)  # Assuming `printBoard` prints the board state
         print("=" * 30)  # Separator for readability
-        print(self.child_nodes)
-        print(self.child_nodes)
-
 
         return best_child, best_child.action_index
+
+    def movePlayer(self, playerMove):
+
+
+        # Find the child node that matches the player's move
+        new_node = [child for child in self.child_nodes.values() if child.action_index == playerMove]
+
+
+        if new_node:
+            new_root = new_node[0]  # There should be only one matching node
+
+
+        else:
+
+
+            # Make the move on the current game state
+            game_state, _, _ = makeMove(self.game_state, playerMove, HUMAN_PLAYER)
+
+            # Check if the game is over
+            done = gameIsOver(game_state)
+
+            # Create a new node with the updated game state
+            new_root = Node(game_state, done, None, playerMove)
+
+        new_root.parent = None
+        return new_root
