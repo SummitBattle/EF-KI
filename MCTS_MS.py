@@ -1,8 +1,7 @@
 import random
 import time
 import logging
-import matplotlib.pyplot as plt
-import networkx as nx
+
 
 from board import *
 from copy import deepcopy
@@ -40,7 +39,7 @@ class Node:
             child_board_state = result[0]
 
             done = gameIsOver(child_board_state)
-            self.child_nodes[action] = Node(child_board_state, done, self, action,)
+            self.child_nodes[action] = Node(child_board_state, done, self, action)
 
     def explore(self, minimax_depth=3, min_rollouts=500, min_time=0.0):
         """Select the best child node based on UCT or expand a new node if possible."""
@@ -107,17 +106,26 @@ class Node:
         return EndValue(new_board, AI_PLAYER)
 
     def next(self):
-        """Return the best child based on visit count."""
+        """Return the best child node based on the highest visit count."""
         if self.done:
-            raise ValueError("Game has ended")
+            raise ValueError("Game has ended. No next move available.")
 
         if not self.child_nodes:
-            raise ValueError("No children found and the game hasn't ended")
+            raise ValueError("No children found. Ensure exploration has been performed.")
 
-        max_visits = max(node.visits for node in self.child_nodes.values())
-        best_children = [c for c in self.child_nodes.values() if c.visits == max_visits]
+        # Find the most visited child node
+        best_child = max(self.child_nodes.values(), key=lambda x: x.visits)
+        print(self.child_nodes)
+        print(self.child_nodes)
+        print(self.child_nodes)
+        print(self.child_nodes)
+        print(self.child_nodes)
 
-        best_child = random.choice(best_children)
+        print(f"Selected Best Action: {best_child.action_index} with {best_child.visits} visits.")
+        printBoard(best_child.game_state)  # Assuming `printBoard` prints the board state
+        print("=" * 30)  # Separator for readability
+        print(self.child_nodes)
+        print(self.child_nodes)
+
+
         return best_child, best_child.action_index
-
-
