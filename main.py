@@ -57,14 +57,15 @@ def playerWins(board):
     return 0
 
 
-def aiTurn(board, move_count, playerMove, human_start):
+def aiTurn(board, move_count, playerMove, human_start,firstmove):
     """Runs MCTS for AI's move and updates the board."""
     global parent_node
 
     depth = 5
-
+    if firstmove:
+        aiMove = 3
     # Run MCTS to get AI's next move
-    aiMove, parent_node = ConnectAlgorithm.start_MCTS(
+    else: aiMove, parent_node = ConnectAlgorithm.start_MCTS(
         board, parent_node=parent_node, depth=depth, playerMove=playerMove, human_starts=human_start
     )
 
@@ -101,6 +102,7 @@ def mainFunction():
 
     whileCondition = 1
     human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
+    first_move = True
 
     while whileCondition:
         if isBoardFilled(board):
@@ -118,7 +120,7 @@ def mainFunction():
                     break
 
             # AI Turn
-            board, aiFourInRow, aiMove = aiTurn(board, move_count, playerMove, human_starts)
+            board, aiFourInRow, aiMove = aiTurn(board, move_count, playerMove, human_starts, firstmove=False)
             move_count += 1
 
             if aiFourInRow:
@@ -131,8 +133,9 @@ def mainFunction():
 
         else:
             # AI Turn First
-            board, aiFourInRow, aiMove = aiTurn(board, move_count, playerMove, human_starts)
+            board, aiFourInRow, aiMove = aiTurn(board, move_count, playerMove, human_starts,first_move)
             move_count += 1
+            first_move = False
 
             if aiFourInRow:
                 whileCondition = aiWins(board)

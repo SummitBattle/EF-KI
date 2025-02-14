@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from utility_functions import EndValue
 from board import *
 from random import shuffle
