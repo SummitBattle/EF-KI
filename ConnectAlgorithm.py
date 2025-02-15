@@ -3,7 +3,7 @@ import logging
 from utility_functions import HUMAN_PLAYER, AI_PLAYER
 
 
-def start_MCTS(game_state, done=False, parent_node=None, action_index=None, depth=3, reward=0, playerMove=None,
+def start_MCTS(game_state, done=False, parent_node=None, action_index=None, playerMove=None,
                human_starts=True):
     """
     Runs MCTS with Minimax and returns the next action.
@@ -43,7 +43,7 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, dept
         root = root.movePlayer(playerMove)
 
     # Perform exploration using the provided depth.
-    root.explore(depth)
+    root.explore()
 
     # Choose the best next move and get the corresponding subtree.
     next_tree, next_action = root.next()

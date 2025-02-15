@@ -43,7 +43,7 @@ def center_bias(game_state, action):
     center_col = game_state.width // 2
     dist = abs(col - center_col)
     max_distance = center_col  # Maximum distance is from the farthest column to the center
-    bonus_factor = 20000.0  # Adjust this to control bias strength
+    bonus_factor = 50000.0  # Increased bias strength
 
     # Exponential decay for stronger bias near the center
     bonus = bonus_factor * (1 - (dist / max_distance) ** 2)
@@ -95,7 +95,7 @@ class Node:
         self.game_state = game_state  # BitBoard instance
         self.done = done
         self.action_index = action_index  # The move that led to this node (assumed to be (row, col))
-        self.c = 1.41  # Exploration constant (or math.sqrt(2))
+        self.c = 1.2  # Exploration constant (or math.sqrt(2))
         self.reward = 0.0
         self.starting_player = starting_player
 
@@ -106,12 +106,12 @@ class Node:
         if self.visits == 0:
             return float('inf')
         parent_visits = self.parent.visits if self.parent else 1
-        bias = 0.0
+        bias = 50000.0
         if self.action_index is not None:
             bias = center_bias(self.game_state, self.action_index)
 
         # Weight the bias to balance it with node values and exploration
-        bias_weight = 0.5  # Adjust to control the effect of center bias
+        bias_weight = 1.0  # Increased effect of center bias
         return (self.node_value / self.visits) + (bias_weight * bias) + self.c * math.sqrt(
             math.log(parent_visits) / self.visits)
 
@@ -124,7 +124,7 @@ class Node:
             done = gameIsOver(new_board)
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=3, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=8):
+    def explore(self, minimax_depth=2, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=8):
         """
         Explore the tree using parallel rollouts.
         Instead of running each rollout synchronously, we schedule batches of rollouts in parallel.
@@ -150,8 +150,8 @@ class Node:
                     for child in current.child_nodes.values():
                         score = child.getUCTscore()
                         if score > best_score:
-                            best_score = score
                             best_children = [child]
+                            best_score = score
                         elif score == best_score:
                             best_children.append(child)
                     current = rand_choice(best_children)
@@ -238,9 +238,6 @@ class Node:
             raise ValueError("No children available. Ensure exploration has been performed.")
 
         best_child = max(self.child_nodes.values(), key=lambda child: child.visits)
-        print(f"\nSelected move: {best_child.action_index}")
-        print("Board state for the selected move:")
-        best_child.game_state.print_board()
         return best_child, best_child.action_index
 
     def movePlayer(self, playerMove):
