@@ -1,6 +1,5 @@
 import os
 import ConnectAlgorithm
-import minimaxAlphaBeta
 
 from board import *  # import the bitboard implementation
 
@@ -56,30 +55,24 @@ def playerWins(bitboard):
 def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     """
     Handles the AI's turn using the bitboard representation.
-    - On the first move, the AI selects the middle column (3).
-    - Uses MCTS for early/mid-game exploration.
-    - Switches to Minimax in the late game (move_count >= 25).
+    On the very first move the AI selects the middle column (3);
+    otherwise, it uses your ConnectAlgorithm (e.g., MCTS) to choose a move.
     """
     global parent_node
-    depth = 8
-
+    depth = 5
     if first_move:
-        ai_move = 3  # Choose the middle column on the first move
-    elif move_count >= 25:  # Switch to Minimax after 25 moves
-        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard,depth,bitboard.current_player,
-            bitboard, depth=depth, maximizingPlayer=True
-        )
+        ai_move = 3  # choose the middle column on the first move
     else:
         ai_move, parent_node = ConnectAlgorithm.start_MCTS(
             bitboard,
             parent_node=parent_node,
+            depth=depth,
             playerMove=last_human_move,
             human_starts=human_starts
         )
 
     row, col, win = bitboard.play_move(ai_move)
     return bitboard, win, ai_move
-
 
 
 def aiWins(bitboard):
