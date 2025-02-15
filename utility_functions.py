@@ -1,142 +1,118 @@
+# Dimensions and player definitions
 BOARD_WIDTH = 7
 BOARD_HEIGHT = 6
+COL_SIZE = BOARD_HEIGHT + 1  # = 7 (6 playable rows plus 1 extra bit per column)
 AI_PLAYER = 'o'
 HUMAN_PLAYER = 'x'
 
-def countSequence(board, player, length):
-    """ Given the board state , the current player and the length of Sequence you want to count
-        Return the count of Sequences that have the given length
+
+def in_bounds(r, c):
+    """Return True if row r and column c are within the playable board."""
+    return 0 <= r < BOARD_HEIGHT and 0 <= c < BOARD_WIDTH
+
+
+def sequenceExists(pos, r, c, dr, dc, length):
     """
-    def verticalSeq(row, col):
-        """Return 1 if it found a vertical sequence with the required length """
-        count = 0
-        for rowIndex in range(row, BOARD_HEIGHT):
-            if board[rowIndex][col] == board[row][col]:
-                count += 1
-            else:
-                break
-        if count >= length:
-            return 1
-        else:
-            return 0
+    Check if starting at (r, c) and proceeding in direction (dr, dc)
+    there are 'length' consecutive bits set in the bitboard 'pos'.
+    """
+    for i in range(length):
+        rr = r + i * dr
+        cc = c + i * dc
+        if not in_bounds(rr, cc):
+            return False
+        # Compute the bit position: each column occupies COL_SIZE bits.
+        bit = 1 << (cc * COL_SIZE + rr)
+        if not (pos & bit):
+            return False
+    return True
 
-    def horizontalSeq(row, col):
-        """Return 1 if it found a horizontal sequence with the required length """
-        count = 0
-        for colIndex in range(col, BOARD_WIDTH):
-            if board[row][colIndex] == board[row][col]:
-                count += 1
-            else:
-                break
-        if count >= length:
-            return 1
-        else:
-            return 0
 
-    def negDiagonalSeq(row, col):
-        """Return 1 if it found a negative diagonal sequence with the required length """
-        count = 0
-        colIndex = col
-        for rowIndex in range(row, -1, -1):
-            if colIndex > BOARD_WIDTH - 1:
-                break
-            elif board[rowIndex][colIndex] == board[row][col]:
-                count += 1
-            else:
-                break
-            colIndex += 1  # increment column when row is incremented
-        if count >= length:
-            return 1
-        else:
-            return 0
+def countSequence(bitboard_obj, player, length):
+    """
+    Count the number of sequences of consecutive pieces (of the given 'length')
+    for the given player in the bitboard.
 
-    def posDiagonalSeq(row, col):
-        """Return 1 if it found a positive diagonal sequence with the required length """
-        count = 0
-        colIndex = col
-        for rowIndex in range(row, BOARD_HEIGHT):
-            if colIndex > BOARD_WIDTH - 1:
-                break
-            elif board[row][colIndex] == board[row][col]:
-                count += 1
-            else:
-                break
-            colIndex += 1  # increment column when row incremented
-        if count >= length:
-            return 1
-        else:
-            return 0
+    The function inspects each playable cell; if that cell is occupied by the player,
+    it checks in all four directions:
+       - Vertical (downward): dr = 1, dc = 0
+       - Horizontal (to the right): dr = 0, dc = 1
+       - Positive diagonal (down-right): dr = 1, dc = 1
+       - Negative diagonal (up-right): dr = -1, dc = 1
 
+    Note that sequences may overlap. This is similar to your original approach.
+    """
+    # Choose the correct bitboard: here we assume that if player == HUMAN_PLAYER,
+    # their pieces are stored in board1; otherwise in board2.
+    pos = bitboard_obj.board1 if player == HUMAN_PLAYER else bitboard_obj.board2
     totalCount = 0
-    # for each piece in the board...
-    for row in range(BOARD_HEIGHT):
-        for col in range(BOARD_WIDTH):
-            # ...that is of the player we're looking for...
-            if board[row][col] == player:
-                # check if a vertical streak starts at (row, col)
-                totalCount += verticalSeq(row, col)
-                # check if a horizontal four-in-a-row starts at (row, col)
-                totalCount += horizontalSeq(row, col)
-                # check if a diagonal (both +ve and -ve slopes) four-in-a-row starts at (row, col)
-                totalCount += (posDiagonalSeq(row, col) + negDiagonalSeq(row, col))
-    # return the sum of sequences of length 'length'
+    # Loop over all playable cells (rows 0 to BOARD_HEIGHT-1, cols 0 to BOARD_WIDTH-1)
+    for r in range(BOARD_HEIGHT):
+        for c in range(BOARD_WIDTH):
+            # Compute the bit for cell (r, c)
+            bit = 1 << (c * COL_SIZE + r)
+            if pos & bit:
+                if sequenceExists(pos, r, c, 1, 0, length):  # vertical
+                    totalCount += 1
+                if sequenceExists(pos, r, c, 0, 1, length):  # horizontal
+                    totalCount += 1
+                if sequenceExists(pos, r, c, 1, 1, length):  # positive diagonal
+                    totalCount += 1
+                if sequenceExists(pos, r, c, -1, 1, length):  # negative diagonal
+                    totalCount += 1
     return totalCount
 
-def EndValue(board, player):
-    """ A utility function to evaluate the state of the board and report it to the calling function,
-        utility value is defined as the score of the player who calls the function - score of opponent player,
-        The score of any player is the sum of each sequence found for this player scaled by a large factor for
-        sequences with higher lengths.
-    """
-    if player == HUMAN_PLAYER:
-        opponent = AI_PLAYER
-    else:
-        opponent = HUMAN_PLAYER
 
-    if countSequence(board, player, 4) >= 1:
-        return 1  # Win
-    elif countSequence(board, opponent, 4) >= 1:
-        return -1 # Loss
+def EndValue(bitboard_obj, player):
+    """
+    Returns 1 if the given player has at least one 4-in-a-row,
+    -1 if the opponent has a 4-in-a-row, and 0 otherwise.
+    """
+    opponent = AI_PLAYER if player == HUMAN_PLAYER else HUMAN_PLAYER
+
+    if countSequence(bitboard_obj, player, 4) >= 1:
+        return 1  # Win for player
+    elif countSequence(bitboard_obj, opponent, 4) >= 1:
+        return -1  # Loss for player
     else:
         return 0
-    # Draw or intermediate state
 
-def utilityValue(board, player):
-    """ A utility function to evaluate the state of the board and report it to the calling function,
-        utility value is defined as the score of the player who calls the function - score of opponent player,
-        The score of any player is the sum of each sequence found for this player scaled by a large factor for
-        sequences with higher lengths.
+
+def utilityValue(bitboard_obj, player):
     """
-    if player == HUMAN_PLAYER:
-        opponent = AI_PLAYER
-    else:
-        opponent = HUMAN_PLAYER
+    Returns an evaluation of the current board state from the perspective of 'player'.
 
-    playerfours = countSequence(board, player, 4)
-    playerthrees = countSequence(board, player, 3)
-    playertwos = countSequence(board, player, 2)
-    playerScore = playerfours * 100000 + playerthrees * 500 + playertwos * 20
+    The score is computed by counting sequences of length 2, 3, and 4
+    and weighting them with increasing factors. (A 4-in-a-row returns +/-infinity.)
+    """
+    opponent = AI_PLAYER if player == HUMAN_PLAYER else HUMAN_PLAYER
 
-    opponentfours = countSequence(board, opponent, 4)
-    opponentthrees = countSequence(board, opponent, 3)
-    opponenttwos = countSequence(board, opponent, 2)
-    opponentScore = opponentfours * 100000 + opponentthrees * 500 + opponenttwos * 20
+    player_fours = countSequence(bitboard_obj, player, 4)
+    player_threes = countSequence(bitboard_obj, player, 3)
+    player_twos = countSequence(bitboard_obj, player, 2)
+    playerScore = player_fours * 100000 + player_threes * 500 + player_twos * 20
 
-    if opponentfours > 0:
-        # This means that the current player lost the game
-        # So return the biggest negative value => -infinity
+    opponent_fours = countSequence(bitboard_obj, opponent, 4)
+    opponent_threes = countSequence(bitboard_obj, opponent, 3)
+    opponent_twos = countSequence(bitboard_obj, opponent, 2)
+    opponentScore = opponent_fours * 100000 + opponent_threes * 500 + opponent_twos * 20
+
+    if opponent_fours > 0:
+        # The current player lost the game.
         return float('-inf')
-    if playerfours > 0:
+    if player_fours > 0:
+        # The current player won the game.
         return float('inf')
-    else:
-        # Return the playerScore minus the opponentScore
-        return playerScore - opponentScore
+    return playerScore - opponentScore
 
-def gameIsOver(board):
-    """Check if there is a winner in the current state of the board"""
-    if countSequence(board, HUMAN_PLAYER, 4) >= 1:
+
+def gameIsOver(bitboard_obj):
+    """
+    Returns True if either player has at least one 4-in-a-row.
+    """
+    if countSequence(bitboard_obj, HUMAN_PLAYER, 4) >= 1:
         return True
-    elif countSequence(board, AI_PLAYER, 4) >= 1:
+    elif countSequence(bitboard_obj, AI_PLAYER, 4) >= 1:
         return True
     else:
         return False
