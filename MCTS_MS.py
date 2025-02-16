@@ -9,13 +9,16 @@ from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
 
 
 def copy_board(bitboard):
-    """Use a fast board copy method if available."""
-    return bitboard.copy() if hasattr(bitboard, 'copy') else deepcopy(bitboard)
+    """Fast board copy: use a built-in copy method if available."""
+    if hasattr(bitboard, 'copy'):
+        return bitboard.copy()
+    return deepcopy(bitboard)
+
 
 def count_moves(bitboard):
     """
-    Count the moves for each player.
-    Assumes:
+    Count the number of moves for each player using the bitboard representation.
+    We assume:
       - bitboard.board1 holds the human moves ('x')
       - bitboard.board2 holds the AI moves ('o')
     """
@@ -24,46 +27,31 @@ def count_moves(bitboard):
     return ai_moves, human_moves
 
 
-def center_bias(game_state, action):
-    """
-    Compute a bonus for moves closer to the center.
-    Assumes `action` is an integer representing the column.
-    """
-    if not hasattr(game_state, 'width'):
-        return 0.0
-
-    col = action  # Action is simply the column.
-    center_col = game_state.width // 2
-    dist = abs(col - center_col)
-    max_distance = center_col
-    bonus_factor = 2
-    # Exponential decay: moves nearer to center get a higher bonus.
-    return bonus_factor * (1 - (dist / max_distance) ** 2)
-
-
 def rollout_simulation(game_state, minimax_depth):
     """
-    Perform a simulation from the given board state.
-    This function is intended to run in parallel.
+    A standalone rollout function that performs a simulation from a given board state.
+    This function is designed to be run in parallel.
     """
     board_state = copy_board(game_state)
 
     if gameIsOver(board_state):
         return EndValue(board_state, AI_PLAYER)
 
-    # --- First Move using Minimax ---
+    # --- First Move with Minimax ---
     best_move, _ = MiniMaxAlphaBeta(board_state, minimax_depth, board_state.current_player)
     if best_move is not None:
         board_state.play_move(best_move)
         if gameIsOver(board_state):
             return EndValue(board_state, AI_PLAYER)
 
-    # --- Random Rollout Phase ---
+    # Switch current player for the random rollout phase.
     current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
+
+    # --- Random Rollout Phase ---
     while not gameIsOver(board_state):
         valid_moves = board_state.get_valid_moves()
         if not valid_moves:
-            return 0.5  # Draw if no moves.
+            return 0.5  # Draw value if no moves available.
         action = random.choice(valid_moves)
         board_state.current_player = current_player
         board_state.play_move(action)
@@ -73,18 +61,8 @@ def rollout_simulation(game_state, minimax_depth):
 
 
 class Node:
-    __slots__ = (
-        'parent',
-        'child_nodes',
-        'visits',
-        'node_value',
-        'game_state',
-        'done',
-        'action_index',
-        'c',
-        'reward',
-        'starting_player'
-    )
+    __slots__ = ('parent', 'child_nodes', 'visits', 'node_value', 'game_state', 'done',
+                 'action_index', 'c', 'reward', 'starting_player')
 
     def __init__(self, game_state, done, parent_node, action_index, starting_player):
         self.parent = parent_node
@@ -93,48 +71,42 @@ class Node:
         self.node_value = 0.0
         self.game_state = game_state  # BitBoard instance
         self.done = done
-        self.action_index = action_index  # The move (column) that led here.
-        self.c = 1.41  # Exploration constant.
+        self.action_index = action_index  # The move that led to this node (assumed to be (row, col))
+        self.c = 1.41  # Exploration constant (or math.sqrt(2))
         self.reward = 0.0
         self.starting_player = starting_player
 
-    def getUCTscore(self, parent_log=None):
+    def getUCTscore(self):
         """
-        Calculate the UCT score for this node.
-        Uses precomputed parent_log if available.
+        Calculate the UCT score with center bias applied.
         """
         if self.visits == 0:
             return float('inf')
-        if parent_log is None:
-            parent_visits = self.parent.visits if self.parent else 1
-            parent_log = math.log(parent_visits)
-        # Apply center bias if action is defined.
-        bias = center_bias(self.game_state, self.action_index) if self.action_index is not None else 0.0
-        return (self.node_value / self.visits) + bias + self.c * math.sqrt(parent_log / self.visits)
+        parent_visits = self.parent.visits if self.parent else 1
+
+        return (self.node_value / self.visits) + self.c * math.sqrt(
+            math.log(parent_visits) / self.visits)
 
     def create_child_nodes(self):
-        """
-        Expand this node by creating a child for each valid move.
-        """
         valid_moves = self.game_state.get_valid_moves()
         for action in valid_moves:
             new_board = copy_board(self.game_state)
+            # Play the move; assume play_move toggles the current_player automatically.
             new_board.play_move(action)
             done = gameIsOver(new_board)
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=2, min_rollouts=50000000, min_time=0.0, max_time=6, batch_size=8):
+    def explore(self, minimax_depth=3, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=8):
         """
         Explore the tree using parallel rollouts.
-        Rollouts are scheduled in batches.
+        Instead of running each rollout synchronously, we schedule batches of rollouts in parallel.
         """
         start_time = time.perf_counter()
         rollouts = 0
 
-        # Cache local functions for speed.
         rand_choice = random.choice
         get_time = time.perf_counter
-        batch = []  # List of tuples: (future, node)
+        batch = []  # list of tuples: (future, node)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             while True:
@@ -145,16 +117,13 @@ class Node:
                 current = self
                 # --- Selection Phase ---
                 while current.child_nodes:
-                    # Compute parent's log once for all children.
-                    parent_visits = current.visits if current.visits else 1
-                    parent_log = math.log(parent_visits)
                     best_score = -float('inf')
                     best_children = []
                     for child in current.child_nodes.values():
-                        score = child.getUCTscore(parent_log)
+                        score = child.getUCTscore()
                         if score > best_score:
-                            best_children = [child]
                             best_score = score
+                            best_children = [child]
                         elif score == best_score:
                             best_children.append(child)
                     current = rand_choice(best_children)
@@ -165,18 +134,18 @@ class Node:
                     if current.child_nodes:
                         current = rand_choice(list(current.child_nodes.values()))
 
-                # Schedule a rollout in parallel.
+                # Schedule the rollout simulation in parallel.
                 future = executor.submit(rollout_simulation, current.game_state, minimax_depth)
                 batch.append((future, current))
                 rollouts += 1
 
-                # Process batch when full.
+                # Process batch once full.
                 if len(batch) >= batch_size:
                     for future, node in batch:
                         try:
                             reward = future.result()
                         except Exception:
-                            reward = 0.0
+                            reward = 0.0  # Fallback if simulation fails.
                         # --- Backpropagation Phase ---
                         node_to_update = node
                         while node_to_update:
@@ -185,7 +154,7 @@ class Node:
                             node_to_update = node_to_update.parent
                     batch.clear()
 
-            # Process any remaining rollouts.
+            # Process any remaining futures.
             for future, node in batch:
                 try:
                     reward = future.result()
@@ -202,7 +171,7 @@ class Node:
 
     def rollout(self, minimax_depth: int = 2) -> float:
         """
-        Perform a rollout from the current state with center bias used during move selection.
+        Rollout with center bias applied during move selection.
         """
         board_state = copy_board(self.game_state)
 
@@ -217,13 +186,15 @@ class Node:
 
         current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
 
+        # Rollout with center bias applied
         while not gameIsOver(board_state):
             valid_moves = board_state.get_valid_moves()
             if not valid_moves:
-                return 0.5  # Draw
-            # Compute center biases for a weighted random choice.
-            biases = [center_bias(board_state, move) for move in valid_moves]
-            action = random.choices(valid_moves, weights=biases, k=1)[0]
+                return 0.5  # Draw value if no moves are available
+
+            # Choose a move with weighted random selection
+            action = random.choices(valid_moves)[0]
+
             board_state.current_player = current_player
             board_state.play_move(action)
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
@@ -231,20 +202,16 @@ class Node:
         return EndValue(board_state, AI_PLAYER)
 
     def next(self):
-        """
-        Return the child with the highest visit count.
-        """
         if self.done:
             raise ValueError("Game has ended. No next move available.")
         if not self.child_nodes:
             raise ValueError("No children available. Ensure exploration has been performed.")
+
         best_child = max(self.child_nodes.values(), key=lambda child: child.visits)
+        best_child.game_state.print_board()
         return best_child, best_child.action_index
 
     def movePlayer(self, playerMove):
-        """
-        Move to the node corresponding to the given player move.
-        """
         if playerMove in self.child_nodes:
             new_root = self.child_nodes[playerMove]
         else:
