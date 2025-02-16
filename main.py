@@ -66,7 +66,6 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
         ai_move, parent_node = ConnectAlgorithm.start_MCTS(
             bitboard,
             parent_node=parent_node,
-            depth=depth,
             playerMove=last_human_move,
             human_starts=human_starts
         )
