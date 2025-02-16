@@ -7,13 +7,11 @@ import concurrent.futures
 from minimaxAlphaBeta import MiniMaxAlphaBeta
 from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
 
-
 def copy_board(bitboard):
     """Fast board copy: use a built-in copy method if available."""
     if hasattr(bitboard, 'copy'):
         return bitboard.copy()
     return deepcopy(bitboard)
-
 
 def count_moves(bitboard):
     """
@@ -26,6 +24,33 @@ def count_moves(bitboard):
     ai_moves = bin(bitboard.board2).count("1")
     return ai_moves, human_moves
 
+def get_move_column(move):
+    """
+    Helper to extract the column index from a move.
+    Assumes that if the move is a tuple, its second element is the column.
+    If the move is an int, it is the column.
+    """
+    if isinstance(move, int):
+        return move
+    elif isinstance(move, tuple):
+        return move[1]
+    return move
+
+def biased_random_move(valid_moves, center_col=3, bias_strength=0.003):
+    """
+    Select a move with a slight center bias.
+    For Connect 4 (7 columns), the center column is 3.
+    Moves closer to the center receive a higher weight.
+    """
+    weights = []
+    # For a standard Connect 4 board with 7 columns, the maximum distance from the center is 3.
+    max_distance = 3
+    for move in valid_moves:
+        col = get_move_column(move)
+        # Higher weight for moves closer to the center.
+        weight = 1 + bias_strength * (max_distance - abs(col - center_col))
+        weights.append(weight)
+    return random.choices(valid_moves, weights=weights, k=1)[0]
 
 def rollout_simulation(game_state, minimax_depth):
     """
@@ -47,12 +72,12 @@ def rollout_simulation(game_state, minimax_depth):
     # Switch current player for the random rollout phase.
     current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
 
-    # --- Random Rollout Phase ---
+    # --- Random Rollout Phase with center bias ---
     while not gameIsOver(board_state):
         valid_moves = board_state.get_valid_moves()
         if not valid_moves:
             return 0.5  # Draw value if no moves available.
-        action = random.choice(valid_moves)
+        action = biased_random_move(valid_moves)  # Use biased move selection
         board_state.current_player = current_player
         board_state.play_move(action)
         current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
@@ -72,20 +97,31 @@ class Node:
         self.game_state = game_state  # BitBoard instance
         self.done = done
         self.action_index = action_index  # The move that led to this node (assumed to be (row, col))
-        self.c = 1.41  # Exploration constant (or math.sqrt(2))
+        self.c = 1.2  # Exploration constant (or math.sqrt(2))
         self.reward = 0.0
         self.starting_player = starting_player
 
-    def getUCTscore(self):
-        """
-        Calculate the UCT score with center bias applied.
-        """
+    def getUCTscore(self, center_col=3, bias_strength=0.03):
         if self.visits == 0:
             return float('inf')
         parent_visits = self.parent.visits if self.parent else 1
 
-        return (self.node_value / self.visits) + self.c * math.sqrt(
-            math.log(parent_visits) / self.visits)
+        # Standard UCT formula
+        uct_score = (self.node_value / self.visits) + self.c * math.sqrt(
+            math.log(parent_visits) / self.visits
+        )
+
+        # Add center bias
+        if isinstance(self.action_index, tuple):
+            move_col = self.action_index[1]  # Extract column from (row, col) tuple
+        else:
+            move_col = self.action_index
+
+        # Higher weight for moves closer to the center
+        max_distance = 3  # Max distance for a 7-column board
+        center_bias = bias_strength * (max_distance - abs(move_col - center_col))
+
+        return uct_score + center_bias
 
     def create_child_nodes(self):
         valid_moves = self.game_state.get_valid_moves()
@@ -192,9 +228,8 @@ class Node:
             if not valid_moves:
                 return 0.5  # Draw value if no moves are available
 
-            # Choose a move with weighted random selection
-            action = random.choices(valid_moves)[0]
-
+            # Choose a move with weighted random selection based on proximity to center.
+            action = biased_random_move(valid_moves)
             board_state.current_player = current_player
             board_state.play_move(action)
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
@@ -220,4 +255,4 @@ class Node:
             done = gameIsOver(new_board)
             new_root = Node(new_board, done, self, playerMove, self.starting_player)
             self.child_nodes[playerMove] = new_root
-        return new_root
+        return new_root  # Center bias is applied in the rollout phases.

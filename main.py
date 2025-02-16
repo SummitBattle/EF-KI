@@ -60,7 +60,7 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     otherwise, it uses your ConnectAlgorithm (e.g., MCTS) to choose a move.
     """
     global parent_node
-    depth = 5
+    depth = 8
     if first_move:
         ai_move = 3  # choose the middle column on the first move
     elif move_count >=25:
