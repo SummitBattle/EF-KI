@@ -12,7 +12,6 @@ def copy_board(bitboard):
     """Use a fast board copy method if available."""
     return bitboard.copy() if hasattr(bitboard, 'copy') else deepcopy(bitboard)
 
-
 def count_moves(bitboard):
     """
     Count the moves for each player.
@@ -37,7 +36,7 @@ def center_bias(game_state, action):
     center_col = game_state.width // 2
     dist = abs(col - center_col)
     max_distance = center_col
-    bonus_factor = 5.0
+    bonus_factor = 2
     # Exponential decay: moves nearer to center get a higher bonus.
     return bonus_factor * (1 - (dist / max_distance) ** 2)
 
@@ -95,7 +94,7 @@ class Node:
         self.game_state = game_state  # BitBoard instance
         self.done = done
         self.action_index = action_index  # The move (column) that led here.
-        self.c = 1  # Exploration constant.
+        self.c = 1.41  # Exploration constant.
         self.reward = 0.0
         self.starting_player = starting_player
 
@@ -124,7 +123,7 @@ class Node:
             done = gameIsOver(new_board)
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=2, min_rollouts=50000000, min_time=0.0, max_time=5.5, batch_size=8):
+    def explore(self, minimax_depth=2, min_rollouts=50000000, min_time=0.0, max_time=6, batch_size=8):
         """
         Explore the tree using parallel rollouts.
         Rollouts are scheduled in batches.

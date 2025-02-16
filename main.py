@@ -1,5 +1,6 @@
 import os
 import ConnectAlgorithm
+import minimaxAlphaBeta
 
 from board import *  # import the bitboard implementation
 
@@ -62,7 +63,11 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     depth = 5
     if first_move:
         ai_move = 3  # choose the middle column on the first move
+    elif move_count >=25:
+        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, depth, bitboard.current_player)[0]
+
     else:
+
         ai_move, parent_node = ConnectAlgorithm.start_MCTS(
             bitboard,
             parent_node=parent_node,
