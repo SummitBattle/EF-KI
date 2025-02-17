@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 # Color definitions (for console output)
 RED     = '\033[1;31;40m'
 RED_BG  = '\033[0;31;47m'
@@ -135,7 +136,6 @@ class BitBoard:
         print('')
 
 
-import numpy as np
 
     def get_board_array(self):
         """
