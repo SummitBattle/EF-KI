@@ -1,3 +1,4 @@
+
 import random
 import time
 import math
@@ -20,51 +21,6 @@ def copy_board(bitboard):
     if hasattr(bitboard, 'copy'):
         return bitboard.copy()
     return deepcopy(bitboard)
-
-
-def count_moves(bitboard):
-    """
-    Count the number of moves for each player using the bitboard representation.
-    We assume:
-      - bitboard.board1 holds the human moves ('x')
-      - bitboard.board2 holds the AI moves ('o')
-    """
-    human_moves = bin(bitboard.board1).count("1")
-    ai_moves = bin(bitboard.board2).count("1")
-    return ai_moves, human_moves
-
-
-def get_move_column(move):
-    """
-    Helper to extract the column index from a move.
-    Assumes that if the move is a tuple, its second element is the column.
-    If the move is an int, it is the column.
-    """
-    if isinstance(move, int):
-        return move
-    elif isinstance(move, tuple):
-        return move[1]
-    return move
-
-
-def biased_random_move(valid_moves, center_col=3, bias_strength=0.001):
-    """
-    Select a move with a slight center bias.
-    For Connect 4 (7 columns), the center column is 3.
-    Moves closer to the center receive a higher weight.
-    """
-    weights = []
-    max_distance = 3  # For a standard Connect 4 board
-    for move in valid_moves:
-        col = get_move_column(move)
-        weight = 1 + bias_strength * (max_distance - abs(col - center_col))
-        weights.append(weight)
-    chosen_move = random.choices(valid_moves, weights=weights, k=1)[0]
-
-    return chosen_move
-
-
-# --- New helper functions to convert the bitboard into a feature array ---
 
 def bitboard_to_array(bitboard_int):
     """
@@ -266,4 +222,4 @@ class Node:
 
         return new_root
 
-# (Optional) Remove or comment out any legacy rollout function that uses minimax.
+# (Optional) Remove or comment out any legacy rollout function that uses minimax.  can you optimize this code
