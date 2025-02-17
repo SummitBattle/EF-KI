@@ -135,3 +135,24 @@ class BitBoard:
         print('')
 
 
+import numpy as np
+
+    def get_board_array(self):
+        """
+        Convert the bitboard into a 2D numpy array representation.
+        We'll use:
+          - 0 for an empty cell,
+          - 1 for a cell occupied by Player 1,
+          - 2 for a cell occupied by Player 2.
+        Note: The board is stored with row 0 at the bottom.
+        """
+        board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH), dtype=int)
+        for col in range(BOARD_WIDTH):
+            for r in range(BOARD_HEIGHT):
+                bit = 1 << (col * COL_SIZE + r)
+                if self.board1 & bit:
+                    board[r, col] = 1
+                elif self.board2 & bit:
+                    board[r, col] = 2
+        return board
+

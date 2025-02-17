@@ -1,74 +1,234 @@
+import os
 import random
 import time
 import math
 from copy import deepcopy
 import concurrent.futures
-
-from minimaxAlphaBeta import MiniMaxAlphaBeta
-from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
-
 import logging
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
 
-# Set up logging configuration to log to a file
-logging.basicConfig(
-    filename='rollouts.log',  # File where log will be saved
-    format='%(asctime)s - %(message)s',  # Format for each log entry
-    level=logging.INFO  # You can change this to DEBUG for more detailed logs
-)
+# ----------------------------
+# Console Colors & Board Setup
+# ----------------------------
+RED     = '\033[1;31;40m'
+BLUE    = '\033[1;34;40m'
+YELLOW  = '\033[1;33;40m'
+WHITE   = '\033[1;37;40m'
 
+BOARD_WIDTH  = 7
+BOARD_HEIGHT = 6
+COL_SIZE = BOARD_HEIGHT + 1  # We use an extra bit per column as a sentinel.
+
+# Precompute masks for each column.
+bottom_mask = [1 << (col * COL_SIZE) for col in range(BOARD_WIDTH)]
+column_mask = [(((1 << BOARD_HEIGHT) - 1) << (col * COL_SIZE)) for col in range(BOARD_WIDTH)]
+top_mask = [1 << (col * COL_SIZE + BOARD_HEIGHT - 1) for col in range(BOARD_WIDTH)]
+
+FULL_MASK = 0
+for col in range(BOARD_WIDTH):
+    FULL_MASK |= column_mask[col]
+
+def is_winning_position(pos):
+    """
+    Check whether the given bitboard 'pos' contains a winning 4‑in‑a‑row.
+    """
+    # Vertical
+    m = pos & (pos >> 1)
+    if m & (m >> 2):
+        return True
+    # Horizontal (shift by COL_SIZE)
+    m = pos & (pos >> COL_SIZE)
+    if m & (m >> (2 * COL_SIZE)):
+        return True
+    # Diagonal (/): shift by (COL_SIZE - 1)
+    m = pos & (pos >> (COL_SIZE - 1))
+    if m & (m >> (2 * (COL_SIZE - 1))):
+        return True
+    # Diagonal (\): shift by (COL_SIZE + 1)
+    m = pos & (pos >> (COL_SIZE + 1))
+    if m & (m >> (2 * (COL_SIZE + 1))):
+        return True
+    return False
+
+# ----------------------------
+# BitBoard Class Definition
+# ----------------------------
+class BitBoard:
+    def __init__(self):
+        self.board1 = 0  # Bits for Player 1 (e.g., 'x')
+        self.board2 = 0  # Bits for Player 2 (e.g., 'o')
+        self.mask = 0    # Overall occupancy (board1 OR board2)
+        self.current_player = 1  # Player 1 starts
+        self.moves = []  # History of moves (columns played)
+
+    def can_play(self, col):
+        """Return True if there is room in the given column (0-indexed)."""
+        return (self.mask & top_mask[col]) == 0
+
+    def get_valid_moves(self):
+        """Return a list of valid columns (0-indexed) where a move can be made."""
+        return [col for col in range(BOARD_WIDTH) if self.can_play(col)]
+
+    def play_move(self, col):
+        """
+        Play a move in the given column.
+        Returns (row, col, win_flag).
+        """
+        if not self.can_play(col):
+            raise ValueError(f"Column {col+1} is full")
+        # Compute the bit for the lowest empty cell in the column.
+        move = (self.mask + bottom_mask[col]) & column_mask[col]
+        if self.current_player == 1:
+            self.board1 |= move
+        else:
+            self.board2 |= move
+        self.mask |= move
+        self.moves.append(col)
+        # Determine row (offset within the column)
+        row = (move.bit_length() - 1) - (col * COL_SIZE)
+        # Check win condition.
+        if self.current_player == 1:
+            win = is_winning_position(self.board1)
+        else:
+            win = is_winning_position(self.board2)
+        # Switch player.
+        self.current_player = 2 if self.current_player == 1 else 1
+        return row, col, win
+
+    def is_board_filled(self):
+        """Return True if the board is completely filled."""
+        return self.mask == FULL_MASK
+
+    def print_board(self):
+        """Clear the screen and print the board in a human‑readable form."""
+        os.system('cls' if os.name == 'nt' else 'clear')
+        moves_played = len(self.moves)
+        print('')
+        print(YELLOW + '         ROUND #' + str(moves_played) + WHITE)
+        print('')
+        print("\t      1   2   3   4   5   6   7")
+        print("\t      -   -   -   -   -   -   -")
+        for r in range(BOARD_HEIGHT - 1, -1, -1):
+            print(WHITE + "\t", r+1, ' ', end="")
+            for col in range(BOARD_WIDTH):
+                bit = 1 << (col * COL_SIZE + r)
+                if self.board1 & bit:
+                    piece = BLUE + 'x' + WHITE
+                elif self.board2 & bit:
+                    piece = RED + 'o' + WHITE
+                else:
+                    piece = ' '
+                print("| " + piece, end=" ")
+            print("|")
+        print('')
+
+    def get_board_array(self):
+        """
+        Convert the bitboard into a 2D numpy array.
+        Uses:
+          0 for an empty cell,
+          1 for Player 1,
+          2 for Player 2.
+        """
+        board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH), dtype=int)
+        for col in range(BOARD_WIDTH):
+            for r in range(BOARD_HEIGHT):
+                bit = 1 << (col * COL_SIZE + r)
+                if self.board1 & bit:
+                    board[r, col] = 1
+                elif self.board2 & bit:
+                    board[r, col] = 2
+        return board
+
+# ----------------------------
+# Utility Functions & Constants
+# ----------------------------
+# For our purposes, we define:
+AI_PLAYER = 1
+HUMAN_PLAYER = 2
+
+def EndValue(game_state, ai_player):
+    """
+    Compute a reward from the perspective of AI_PLAYER.
+    Here, a win gives 1, a loss gives 0, and a draw gives 0.5.
+    """
+    if game_state.is_board_filled():
+        return 0.5
+    if ai_player == 1:
+        return 1.0 if is_winning_position(game_state.board1) else 0.0
+    else:
+        return 1.0 if is_winning_position(game_state.board2) else 0.0
+
+def gameIsOver(game_state):
+    """Return True if the game is over (win or full board)."""
+    return (game_state.is_board_filled() or
+            is_winning_position(game_state.board1) or
+            is_winning_position(game_state.board2))
 
 def copy_board(bitboard):
-    """Fast board copy: use a built-in copy method if available."""
+    """Return a deep copy of the board."""
     if hasattr(bitboard, 'copy'):
         return bitboard.copy()
     return deepcopy(bitboard)
 
 def count_moves(bitboard):
-    """
-    Count the number of moves for each player using the bitboard representation.
-    We assume:
-      - bitboard.board1 holds the human moves ('x')
-      - bitboard.board2 holds the AI moves ('o')
-    """
     human_moves = bin(bitboard.board1).count("1")
     ai_moves = bin(bitboard.board2).count("1")
     return ai_moves, human_moves
 
 def get_move_column(move):
-    """
-    Helper to extract the column index from a move.
-    Assumes that if the move is a tuple, its second element is the column.
-    If the move is an int, it is the column.
-    """
     if isinstance(move, int):
         return move
     elif isinstance(move, tuple):
         return move[1]
     return move
 
-def biased_random_move(valid_moves, center_col=3, bias_strength=0.09):
-    """
-    Select a move with a slight center bias.
-    For Connect 4 (7 columns), the center column is 3.
-    Moves closer to the center receive a higher weight.
-    """
+def biased_random_move(valid_moves, center_col=3, bias_strength=0.01):
+    """Select a move with a slight center bias."""
     weights = []
-    # For a standard Connect 4 board with 7 columns, the maximum distance from the center is 3.
     max_distance = 3
     for move in valid_moves:
         col = get_move_column(move)
-        # Higher weight for moves closer to the center.
         weight = 1 + bias_strength * (max_distance - abs(col - center_col))
         weights.append(weight)
     return random.choices(valid_moves, weights=weights, k=1)[0]
 
-def rollout_simulation(game_state, minimax_depth):
+# ----------------------------
+# Deep Q‑Learning Components
+# ----------------------------
+class QNetwork(nn.Module):
     """
-    A standalone rollout function that performs a simulation from a given board state.
-    This function is designed to be run in parallel.
+    A simple fully connected Q‑Network.
+    Adjust input_dim and output_dim based on your board representation.
+    """
+    def __init__(self, input_dim, output_dim):
+        super(QNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, output_dim)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.fc3(x)
+
+def board_to_tensor(game_state):
+    """
+    Convert the BitBoard state to a tensor for the Q‑network.
+    """
+    board_array = game_state.get_board_array()
+    tensor = torch.FloatTensor(board_array).flatten().unsqueeze(0)  # shape: (1, num_features)
+    return tensor
+
+def rollout_simulation_with_q(game_state, minimax_depth, q_network, epsilon=0.1):
+    """
+    Perform a rollout from the given game_state using an initial minimax move,
+    then use an epsilon‑greedy strategy guided by the Q‑network.
     """
     board_state = copy_board(game_state)
-
     if gameIsOver(board_state):
         return EndValue(board_state, AI_PLAYER)
 
@@ -79,22 +239,39 @@ def rollout_simulation(game_state, minimax_depth):
         if gameIsOver(board_state):
             return EndValue(board_state, AI_PLAYER)
 
-    # Switch current player for the random rollout phase.
+    # Switch player for the rollout phase.
     current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
 
-    # --- Random Rollout Phase with center bias ---
+    # --- Rollout Phase with Deep Q‑Learning Guidance ---
     while not gameIsOver(board_state):
         valid_moves = board_state.get_valid_moves()
         if not valid_moves:
-            return 0.5  # Draw value if no moves available.
-        action = biased_random_move(valid_moves)  # Use biased move selection
+            return 0.5  # Draw
+
+        # Epsilon‑greedy selection.
+        if random.random() < epsilon:
+            action = biased_random_move(valid_moves)
+        else:
+            q_values = []
+            for move in valid_moves:
+                new_board = copy_board(board_state)
+                new_board.play_move(move)
+                state_tensor = board_to_tensor(new_board)
+                with torch.no_grad():
+                    q_val = q_network(state_tensor)
+                q_values.append(q_val.item())
+            best_index = np.argmax(q_values)
+            action = valid_moves[best_index]
+
         board_state.current_player = current_player
         board_state.play_move(action)
         current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
 
     return EndValue(board_state, AI_PLAYER)
 
-
+# ----------------------------
+# MCTS Node with Deep Q‑Learning Integration
+# ----------------------------
 class Node:
     __slots__ = ('parent', 'child_nodes', 'visits', 'node_value', 'game_state', 'done',
                  'action_index', 'c', 'reward', 'starting_player')
@@ -106,53 +283,43 @@ class Node:
         self.node_value = 0.0
         self.game_state = game_state  # BitBoard instance
         self.done = done
-        self.action_index = action_index  # The move that led to this node (assumed to be (row, col))
-        self.c = 1.6  # Exploration constant (or math.sqrt(2))
+        self.action_index = action_index  # The move that led to this node
+        self.c = 1.41  # Exploration constant
         self.reward = 0.0
         self.starting_player = starting_player
 
-    def getUCTscore(self, center_col=3, bias_strength=0.09):
+    def getUCTscore(self, center_col=3, bias_strength=0.01):
         if self.visits == 0:
             return float('inf')
         parent_visits = self.parent.visits if self.parent else 1
-
-        # Standard UCT formula
-        uct_score = (self.node_value / self.visits) + self.c * math.sqrt(
-            math.log(parent_visits) / self.visits
-        )
-
-        # Add center bias
+        uct_score = (self.node_value / self.visits) + self.c * math.sqrt(math.log(parent_visits) / self.visits)
         if isinstance(self.action_index, tuple):
-            move_col = self.action_index[1]  # Extract column from (row, col) tuple
+            move_col = self.action_index[1]
         else:
             move_col = self.action_index
-
-        # Higher weight for moves closer to the center
-        max_distance = 3  # Max distance for a 7-column board
+        max_distance = 3
         center_bias = bias_strength * (max_distance - abs(move_col - center_col))
-
         return uct_score + center_bias
 
     def create_child_nodes(self):
         valid_moves = self.game_state.get_valid_moves()
         for action in valid_moves:
             new_board = copy_board(self.game_state)
-            # Play the move; assume play_move toggles the current_player automatically.
             new_board.play_move(action)
             done = gameIsOver(new_board)
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=3, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=4):
+    def explore(self, minimax_depth=2, min_rollouts=50000000, min_time=0.0, max_time=4.0,
+                batch_size=4, q_network=None, epsilon=0.1):
         """
         Explore the tree using parallel rollouts.
-        Instead of running each rollout synchronously, we schedule batches of rollouts in parallel.
+        If a q_network is provided, it uses rollout_simulation_with_q.
         """
         start_time = time.perf_counter()
         rollouts = 0
-
         rand_choice = random.choice
         get_time = time.perf_counter
-        batch = []  # list of tuples: (future, node)
+        batch = []
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             while True:
@@ -161,7 +328,7 @@ class Node:
                     break
 
                 current = self
-                # --- Selection Phase ---
+                # --- Selection ---
                 while current.child_nodes:
                     best_score = -float('inf')
                     best_children = []
@@ -174,25 +341,26 @@ class Node:
                             best_children.append(child)
                     current = rand_choice(best_children)
 
-                # --- Expansion Phase ---
+                # --- Expansion ---
                 if not current.done:
                     current.create_child_nodes()
                     if current.child_nodes:
                         current = rand_choice(list(current.child_nodes.values()))
 
-                # Schedule the rollout simulation in parallel.
-                future = executor.submit(rollout_simulation, current.game_state, minimax_depth)
+                # --- Rollout ---
+                if q_network is not None:
+                    future = executor.submit(rollout_simulation_with_q, current.game_state, minimax_depth, q_network, epsilon)
+                else:
+                    future = executor.submit(rollout_simulation, current.game_state, minimax_depth)
                 batch.append((future, current))
                 rollouts += 1
 
-                # Process batch once full.
                 if len(batch) >= batch_size:
                     for future, node in batch:
                         try:
                             reward = future.result()
                         except Exception:
-                            reward = 0.0  # Fallback if simulation fails.
-                        # --- Backpropagation Phase ---
+                            reward = 0.0
                         node_to_update = node
                         while node_to_update:
                             node_to_update.visits += 1
@@ -213,38 +381,27 @@ class Node:
                     node_to_update = node_to_update.parent
 
         logging.info(f"Number of rollouts: {rollouts}")
-
         return self
 
     def rollout(self, minimax_depth: int = 2) -> float:
-        """
-        Rollout with center bias applied during move selection.
-        """
+        """Simple rollout (without Q-network guidance) for backward compatibility."""
         board_state = copy_board(self.game_state)
-
         if gameIsOver(board_state):
             return EndValue(board_state, AI_PLAYER)
-
         best_move, _ = MiniMaxAlphaBeta(board_state, minimax_depth, board_state.current_player)
         if best_move is not None:
             board_state.play_move(best_move)
             if gameIsOver(board_state):
                 return EndValue(board_state, AI_PLAYER)
-
         current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
-
-        # Rollout with center bias applied
         while not gameIsOver(board_state):
             valid_moves = board_state.get_valid_moves()
             if not valid_moves:
-                return 0.5  # Draw value if no moves are available
-
-            # Choose a move with weighted random selection based on proximity to center.
+                return 0.5
             action = biased_random_move(valid_moves)
             board_state.current_player = current_player
             board_state.play_move(action)
             current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
-
         return EndValue(board_state, AI_PLAYER)
 
     def next(self):
@@ -252,7 +409,6 @@ class Node:
             raise ValueError("Game has ended. No next move available.")
         if not self.child_nodes:
             raise ValueError("No children available. Ensure exploration has been performed.")
-
         best_child = max(self.child_nodes.values(), key=lambda child: child.visits)
         best_child.game_state.print_board()
         return best_child, best_child.action_index
@@ -266,4 +422,45 @@ class Node:
             done = gameIsOver(new_board)
             new_root = Node(new_board, done, self, playerMove, self.starting_player)
             self.child_nodes[playerMove] = new_root
-        return new_root  # Center bias is applied in the rollout phases.
+        return new_root
+
+# ----------------------------
+# MiniMaxAlphaBeta Stub
+# ----------------------------
+# For demonstration, we provide a simple stub.
+def MiniMaxAlphaBeta(game_state, depth, current_player):
+    valid_moves = game_state.get_valid_moves()
+    if not valid_moves:
+        return None, 0
+    move = random.choice(valid_moves)
+    return move, 0
+
+# ----------------------------
+# Logging Setup & Main Loop
+# ----------------------------
+logging.basicConfig(
+    filename='rollouts.log',
+    format='%(asctime)s - %(message)s',
+    level=logging.INFO
+)
+
+if __name__ == "__main__":
+    # Initialize a BitBoard instance.
+    board = BitBoard()
+
+    # Create a Q-network instance.
+    input_dim = BOARD_HEIGHT * BOARD_WIDTH  # Adjust based on your representation.
+    output_dim = 1  # Scalar value for the board evaluation.
+    q_net = QNetwork(input_dim, output_dim)
+
+    # Create the root node for MCTS.
+    root = Node(board, False, None, None, board.current_player)
+
+    print("Starting exploration...")
+    # Explore using MCTS with deep Q‑learning (adjust parameters as desired).
+    root.explore(minimax_depth=2, max_time=2.0, q_network=q_net, epsilon=0.1)
+
+    # Get the best move from the explored tree.
+    best_node, best_move = root.next()
+    print(f"Best move determined: {best_move}")
+    best_node.game_state.print_board()
