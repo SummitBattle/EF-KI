@@ -7,6 +7,16 @@ import concurrent.futures
 from minimaxAlphaBeta import MiniMaxAlphaBeta
 from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
 
+import logging
+
+# Set up logging configuration to log to a file
+logging.basicConfig(
+    filename='rollouts.log',  # File where log will be saved
+    format='%(asctime)s - %(message)s',  # Format for each log entry
+    level=logging.INFO  # You can change this to DEBUG for more detailed logs
+)
+
+
 def copy_board(bitboard):
     """Fast board copy: use a built-in copy method if available."""
     if hasattr(bitboard, 'copy'):
@@ -36,7 +46,7 @@ def get_move_column(move):
         return move[1]
     return move
 
-def biased_random_move(valid_moves, center_col=3, bias_strength=0.003):
+def biased_random_move(valid_moves, center_col=3, bias_strength=0.09):
     """
     Select a move with a slight center bias.
     For Connect 4 (7 columns), the center column is 3.
@@ -97,11 +107,11 @@ class Node:
         self.game_state = game_state  # BitBoard instance
         self.done = done
         self.action_index = action_index  # The move that led to this node (assumed to be (row, col))
-        self.c = 1.2  # Exploration constant (or math.sqrt(2))
+        self.c = 1.6  # Exploration constant (or math.sqrt(2))
         self.reward = 0.0
         self.starting_player = starting_player
 
-    def getUCTscore(self, center_col=3, bias_strength=0.03):
+    def getUCTscore(self, center_col=3, bias_strength=0.09):
         if self.visits == 0:
             return float('inf')
         parent_visits = self.parent.visits if self.parent else 1
@@ -132,7 +142,7 @@ class Node:
             done = gameIsOver(new_board)
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def explore(self, minimax_depth=3, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=8):
+    def explore(self, minimax_depth=3, min_rollouts=50000000, min_time=0.0, max_time=8.0, batch_size=4):
         """
         Explore the tree using parallel rollouts.
         Instead of running each rollout synchronously, we schedule batches of rollouts in parallel.
@@ -202,7 +212,8 @@ class Node:
                     node_to_update.node_value += reward
                     node_to_update = node_to_update.parent
 
-        print(f"\nTotal rollouts performed: {rollouts}")
+        logging.info(f"Number of rollouts: {rollouts}")
+
         return self
 
     def rollout(self, minimax_depth: int = 2) -> float:
