@@ -60,15 +60,14 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     otherwise, it uses your ConnectAlgorithm (e.g., MCTS) to choose a move.
     """
     global parent_node
-    depth = 8
     if first_move:
         ai_move = 3  # choose the middle column on the first move
     elif move_count >=25:
-        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, depth, bitboard.current_player)[0]
+        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, 174, bitboard.current_player)[0]
 
     else:
 
-        ai_move, parent_node = ConnectAlgorithm.start_MCTS(
+        ai_move, y= ConnectAlgorithm.start_MCTS(
             bitboard,
             parent_node=parent_node,
             playerMove=last_human_move,
