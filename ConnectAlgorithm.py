@@ -31,15 +31,14 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, play
       - next_action: the column (0-indexed) that MCTS recommends
       - next_tree: the subtree corresponding to that move (for tree reuse)
     """
-    # Use the game state's current player.
-    player = game_state.current_player
+
 
     if done:
         logging.warning("The game is already over. No further moves can be made.")
         return None, None
 
     # Initialize the root node. Reuse a parent node if provided.
-    root = parent_node if parent_node else Node(game_state, done, None, action_index, player)
+    root = parent_node if parent_node else Node(game_state, done, None, action_index, human_starts)
 
     # If a parent node exists and a move was made by the player, update the tree accordingly.
     if parent_node and playerMove is not None:

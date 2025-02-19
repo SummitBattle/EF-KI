@@ -63,7 +63,7 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     if first_move:
         ai_move = 3  # choose the middle column on the first move
     elif move_count >=25:
-        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, 174, bitboard.current_player)[0]
+        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, 14, bitboard.current_player)[0]
 
     else:
 

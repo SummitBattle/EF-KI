@@ -156,3 +156,14 @@ class BitBoard:
                     board[r, col] = 2
         return board
 
+    def get_board_matrix(self):
+        # Create an empty board: 0 = empty, 1 = player1, 2 = player2.
+        board_matrix = np.zeros((6, 7), dtype=int)
+        for r in range(6):
+            for c in range(7):
+                idx = r * 7 + c  # Adjust if your mapping is different.
+                if (self.board1 >> idx) & 1:
+                    board_matrix[r, c] = 1
+                elif (self.board2 >> idx) & 1:
+                    board_matrix[r, c] = 2
+        return board_matrix

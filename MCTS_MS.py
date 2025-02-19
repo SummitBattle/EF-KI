@@ -2,280 +2,353 @@ import random
 import time
 import math
 from copy import deepcopy
-import logging
-from typing import Any, Dict, List, Tuple, Optional
-
+import concurrent.futures
 import numpy as np
-import tensorflow as tf
 from tensorflow.keras.models import load_model
 
-from utility_functions import gameIsOver
+from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
 
-# Enable XLA for potential speed improvements.
-tf.config.optimizer.set_jit(True)
+import logging
+import os
 
-# -------------------------------------------------------
-# Logging configuration – set to INFO or higher for production.
-# -------------------------------------------------------
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # '3' suppresses all messages except errors.
+
+# Set up logging configuration to log to a file.
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s',
-    filename='mcts_debug.log',
-    filemode='w'
+    filename='rollouts.log',  # File where log will be saved.
+    format='%(asctime)s - %(message)s',  # Format for each log entry.
+    level=logging.INFO  # Change to DEBUG for more detailed logs.
 )
 
-# -------------------------------------------------------
-# Constants for demonstration.
-# -------------------------------------------------------
-AI_PLAYER = 1
-HUMAN_PLAYER = -1
+# Global variable for the model (each process will load it once).
+model = None
 
-# -------------------------------------------------------
-# Load the trained Keras model.
-# -------------------------------------------------------
-try:
-    model = load_model('connect4_model.h5')
-    logging.info("Keras model loaded successfully.")
-except Exception as e:
-    logging.exception("Failed to load model: %s", e)
-    raise
 
-# -------------------------------------------------------
-# Convert the Keras model to a TFLite model to reduce inference overhead.
-# -------------------------------------------------------
-try:
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    tflite_model = converter.convert()
-    with open("model.tflite", "wb") as f:
-        f.write(tflite_model)
-    logging.info("TFLite model converted and saved.")
-except Exception as e:
-    logging.exception("Failed to convert model to TFLite: %s", e)
-    raise
+def get_model():
+    """Lazily load and return the trained model."""
+    global model
+    if model is None:
+        print("get_model: Loading model from 'connect4_model.h5'")
+        model = load_model('connect4_model.h5')
+    else:
+        print("get_model: Model already loaded")
+    return model
 
-# -------------------------------------------------------
-# Set up the TFLite interpreter.
-# -------------------------------------------------------
-tflite_interpreter = tf.lite.Interpreter(model_path="model.tflite")
-tflite_interpreter.allocate_tensors()
-input_details = tflite_interpreter.get_input_details()
-output_details = tflite_interpreter.get_output_details()
+
+def board_to_input(board_state):
+    print("board_to_input: Converting board state to model input")
+    if hasattr(board_state, "get_board_matrix"):
+        board_matrix = board_state.get_board_matrix()
+        print("board_to_input: Retrieved board matrix using get_board_matrix()")
+    elif hasattr(board_state, "board1") and hasattr(board_state, "board2"):
+        print("board_to_input: Creating board matrix from board1 and board2 attributes")
+        board_matrix = np.zeros((6, 7), dtype=int)
+        for r in range(6):
+            for c in range(7):
+                idx = r * 7 + c  # Adjust the mapping if needed.
+                if (board_state.board1 >> idx) & 1:
+                    board_matrix[r, c] = 1
+                elif (board_state.board2 >> idx) & 1:
+                    board_matrix[r, c] = 2
+        print("board_to_input: Created board matrix with shape", board_matrix.shape)
+    else:
+        raise ValueError("BitBoard object does not have get_board_matrix or board attributes")
+
+    # Continue processing to prepare the model input.
+    player1 = (board_matrix == 1).astype(np.float32)
+    player2 = (board_matrix == 2).astype(np.float32)
+    input_data = np.stack([player1, player2], axis=-1)
+    input_data = np.expand_dims(input_data, axis=0)
+    print("board_to_input: Final input shape:", input_data.shape)
+    return input_data
+
+
+def model_evaluation(game_state, ai_player, starting_player):
+    """
+    Evaluate the given board state using the trained model.
+
+    The model outputs probabilities in the order:
+      [2nd player win chance, tie, 1st player win chance]
+
+    Expected value is computed as:
+      - If the AI is the starting player: value = (p1 - p2)
+      - Otherwise: value = (p2 - p1)
+    """
+    print("model_evaluation: Evaluating board state using model")
+    mdl = get_model()
+    board = board_to_input(game_state)
+
+    board_flat = board.reshape(-1, 42)  # Now shape (1,42) if you had one board
+
+    probabilities = mdl.predict(board_flat)[0]  # Expected shape: (3,)
+    print("model_evaluation: Model probabilities:", probabilities)
+    p2, tie, p1 = probabilities
+
+    if not starting_player:
+        value = p1 - p2
+        print("model_evaluation: AI is starting player, computed value:", value)
+    else:
+        value = p2 - p1
+        print("model_evaluation: AI is not starting player, computed value:", value)
+    return value
 
 
 def copy_board(bitboard):
-    """Fast board copy using built-in copy if available."""
-    return bitboard.copy() if hasattr(bitboard, 'copy') else deepcopy(bitboard)
-def tflite_batched_predict(inputs: np.ndarray) -> np.ndarray:
-    """
-    Perform batched prediction using the TFLite interpreter.
-    Resizes the input tensor only if necessary.
-    """
-    current_shape = tflite_interpreter.get_tensor(input_details[0]['index']).shape
-    if tuple(inputs.shape) != tuple(current_shape):
-        tflite_interpreter.resize_tensor_input(input_details[0]['index'], inputs.shape)
-        tflite_interpreter.allocate_tensors()
-    tflite_interpreter.set_tensor(input_details[0]['index'], inputs)
-    tflite_interpreter.invoke()
-    return tflite_interpreter.get_tensor(output_details[0]['index'])
+    """Fast board copy: use a built-in copy method if available."""
+
+    if hasattr(bitboard, 'copy'):
+
+        return bitboard.copy()
+
+    return deepcopy(bitboard)
 
 
-# -------------------------------------------------------
-# Helper Functions and Caches
-# -------------------------------------------------------
-_bitboard_cache: Dict[int, List[int]] = {}
-
-def bitboard_to_array(bitboard_int: int) -> List[int]:
+def count_moves(bitboard):
     """
-    Convert an integer bitboard into a list of 42 bits.
-    Optimized using bit shifting instead of string conversion.
+    Count the number of moves for each player using the bitboard representation.
+    Assumes:
+      - bitboard.board1 holds the first player's moves.
+      - bitboard.board2 holds the second player's moves.
     """
-    if bitboard_int in _bitboard_cache:
-        return _bitboard_cache[bitboard_int]
-    # Use bit shifting to extract each bit (most significant bit first)
-    arr = [(bitboard_int >> shift) & 1 for shift in range(41, -1, -1)]
-    _bitboard_cache[bitboard_int] = arr
-    return arr
 
-def convert_bitboard_to_feature_array(game_state: Any) -> List[int]:
+    human_moves = bin(bitboard.board1).count("1")
+    ai_moves = bin(bitboard.board2).count("1")
+
+    return ai_moves, human_moves
+
+
+def get_move_column(move):
     """
-    Convert the game's bitboard representation into a feature array of length 42.
-      - game_state.board1: human moves (encoded as -1)
-      - game_state.board2: AI moves (encoded as 1)
-      - Empty cells: 0
+    Extract the column index from a move.
+    If move is a tuple, its second element is the column.
+    If move is an int, it is the column.
     """
-    human_arr = bitboard_to_array(game_state.board1)
-    ai_arr = bitboard_to_array(game_state.board2)
-    # Inline conditional: if there's an AI move, use 1; if human move, use -1; else 0.
-    feature_arr = [1 if a == 1 else (-1 if h == 1 else 0)
-                   for h, a in zip(human_arr, ai_arr)]
-    return feature_arr
 
-_prediction_cache: Dict[Tuple[int, ...], float] = {}
+    if isinstance(move, int):
 
-# -------------------------------------------------------
-# MCTS Node Class with Batched Simulation and TFLite Inference
-# -------------------------------------------------------
+        return move
+    elif isinstance(move, tuple):
+
+        return move[1]
+
+    return move
+
+
+def biased_random_move(valid_moves, center_col=3, bias_strength=0.09):
+    """
+    Select a move with a slight center bias.
+    For Connect 4 (7 columns), the center column is 3.
+    Moves closer to the center receive a higher weight.
+    """
+    print("biased_random_move: Selecting biased random move")
+    weights = []
+    max_distance = 3  # Maximum distance from the center (columns: 0-6).
+    for move in valid_moves:
+        col = get_move_column(move)
+        weight = 1 + bias_strength * (max_distance - abs(col - center_col))
+        weights.append(weight)
+
+    chosen_move = random.choices(valid_moves, weights=weights, k=1)[0]
+
+    return chosen_move
+
+
+def rollout_simulation(game_state, starting_player):
+    """
+    Perform a simulation from a given board state.
+
+    Instead of running a minimax search or random rollout,
+    we simply evaluate the board using the trained model.
+    """
+    print("rollout_simulation: Starting simulation")
+    board_state = copy_board(game_state)
+    if gameIsOver(board_state):
+        print("rollout_simulation: Game is over, returning EndValue")
+        return EndValue(board_state, AI_PLAYER)
+    result = model_evaluation(board_state, AI_PLAYER, starting_player)
+    print("rollout_simulation: Simulation result:", result)
+    return result
+
+
 class Node:
     __slots__ = ('parent', 'child_nodes', 'visits', 'node_value', 'game_state', 'done',
-                 'action_index', 'c', 'reward', 'starting_player', 'feature_arr', 'feature_tuple')
+                 'action_index', 'c', 'reward', 'starting_player')
 
-    def __init__(self, game_state: Any, done: bool, parent_node: Optional['Node'],
-                 action_index: Any, starting_player: int):
+    def __init__(self, game_state, done, parent_node, action_index, starting_player):
+
         self.parent = parent_node
-        self.child_nodes: Dict[Any, 'Node'] = {}  # Mapping: action -> Node
-        self.visits: int = 0
-        self.node_value: float = 0.0
-        self.game_state = game_state
-        self.done: bool = done
-        self.action_index = action_index  # The move that led to this node
-        self.c: float = 1.6  # Exploration constant
-        self.reward: float = 0.0
-        self.starting_player: int = starting_player
-        # Precompute the feature array and tuple for caching.
-        self.feature_arr: List[int] = convert_bitboard_to_feature_array(game_state)
-        self.feature_tuple: Tuple[int, ...] = tuple(self.feature_arr)
+        self.child_nodes = {}  # Dictionary mapping action -> Node.
+        self.visits = 0
+        self.node_value = 0.0
+        self.game_state = game_state  # The board state.
+        self.done = done
+        self.action_index = action_index  # The move that led to this node.
+        self.c = 1.6  # Exploration constant.
+        self.reward = 0.0
+        self.starting_player = starting_player
 
-    def getUCTscore_inline(self, parent_visits: int) -> float:
+    def getUCTscore(self, center_col=3, bias_strength=0.09):
         """
-        Compute the UCT score using parent's visits.
-        Adds a small center bias based on the column index.
+        Compute the UCT (Upper Confidence Bound for Trees) score for the node.
+        A bonus center bias is added based on the column of the move.
         """
+
         if self.visits == 0:
-            return float('inf')
-        avg_value = self.node_value / self.visits
-        exploration_term = self.c * math.sqrt(math.log(parent_visits) / self.visits)
-        # Determine column from the move; supports tuple moves or single integer moves.
-        move_col = self.action_index[1] if isinstance(self.action_index, tuple) else self.action_index
-        center_bias = 0.009 * (3 - abs(move_col - 3))
-        return avg_value + exploration_term + center_bias
 
-    def create_child_nodes(self) -> None:
-        """Generate child nodes for all valid moves from the current state."""
+            return float('inf')
+        parent_visits = self.parent.visits if self.parent else 1
+
+        # UCT formula.
+        uct_score = (self.node_value / self.visits) + self.c * math.sqrt(math.log(parent_visits) / self.visits)
+        if isinstance(self.action_index, tuple):
+            move_col = self.action_index[1]  # Assume move is (row, col).
+        else:
+            move_col = self.action_index
+        max_distance = 3  # For a 7-column board.
+        center_bias = bias_strength * (max_distance - abs(move_col - center_col))
+        final_score = uct_score + center_bias
+
+        return final_score
+
+    def create_child_nodes(self):
+        """
+        Expand the current node by creating child nodes for each valid move.
+        """
+
         valid_moves = self.game_state.get_valid_moves()
+
         for action in valid_moves:
             new_board = copy_board(self.game_state)
             new_board.play_move(action)
             done = gameIsOver(new_board)
+
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
-    def _process_batch(self, batch_nodes: List['Node']) -> None:
-        """
-        Process a batch of nodes using TFLite predictions and backpropagate rewards.
-        """
-        batch_size = len(batch_nodes)
-        # Preallocate a NumPy array for batched board inputs.
-        board_inputs = np.empty((batch_size, 42), dtype=np.float32)
-        keys = [node.feature_tuple for node in batch_nodes]
-        for i, node in enumerate(batch_nodes):
-            board_inputs[i, :] = np.array(node.feature_arr, dtype=np.float32)
-        try:
-            predictions = tflite_batched_predict(board_inputs)
-        except Exception as e:
-            logging.exception("Batched TFLite prediction failed: %s", e)
-            predictions = None
 
-        if predictions is not None:
-            pred_indices = np.argmax(predictions, axis=1)
-        else:
-            pred_indices = [None] * batch_size
-
-        for i, node in enumerate(batch_nodes):
-            key = keys[i]
-            if key in _prediction_cache:
-                reward = _prediction_cache[key]
-            else:
-                # Map prediction to a reward:
-                #   index 1 -> win (1)
-                #   index 0 -> loss (-1)
-                #   else -> tie/uncertain (0.5)
-                reward = 1 if pred_indices[i] == 1 else (-1 if pred_indices[i] == 0 else 0.5)
-                _prediction_cache[key] = reward
-
-            # Backpropagation: propagate reward up the tree.
-            node_to_update = node
-            while node_to_update is not None:
-                node_to_update.visits += 1
-                node_to_update.node_value += reward
-                node_to_update = node_to_update.parent
-
-    def explore(self, min_rollouts: int = 50000, min_time: float = 5.0, max_time: float = 5.0,
-                batch_size: int = 32) -> 'Node':
+    def explore(self, min_rollouts=2, min_time=0.0, max_time=5.0, batch_size=2):
         """
-        Explore the MCTS tree using batched rollouts.
-        Stops when the minimum rollouts/time have been reached or maximum time exceeded.
+        Explore the tree using parallel rollouts.
+
+        Each rollout now simply evaluates a board (after expansion) using the model.
         """
+
         start_time = time.perf_counter()
         rollouts = 0
-        batch_nodes: List[Node] = []
 
-        while True:
-            elapsed = time.perf_counter() - start_time
-            if (rollouts >= min_rollouts and elapsed >= min_time) or (elapsed >= max_time):
-                logging.info("Stopping exploration: %d rollouts, %.2f sec elapsed.", rollouts, elapsed)
-                break
+        rand_choice = random.choice
+        get_time = time.perf_counter
+        batch = []  # List of tuples: (future, node).
 
-            current = self
-            # --- Selection Phase ---
-            while current.child_nodes:
-                parent_visits = current.visits if current.visits > 0 else 1
-                best_score = -float('inf')
-                best_children: List[Node] = []
-                for child in current.child_nodes.values():
-                    score = child.getUCTscore_inline(parent_visits)
-                    if score > best_score:
-                        best_score = score
-                        best_children = [child]
-                    elif score == best_score:
-                        best_children.append(child)
-                current = random.choice(best_children)
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            while True:
+                elapsed = get_time() - start_time
+                if (rollouts >= min_rollouts and elapsed >= min_time) or (elapsed >= max_time):
+                    print(f"Node.explore: Stopping exploration after {rollouts} rollouts and {elapsed:.2f} seconds")
+                    break
 
-            # --- Expansion Phase ---
-            if not current.done:
-                current.create_child_nodes()
-                if current.child_nodes:
-                    current = random.choice(list(current.child_nodes.values()))
+                current = self
+                # --- Selection Phase ---
+                while current.child_nodes:
+                    best_score = -float('inf')
+                    best_children = []
+                    for child in current.child_nodes.values():
+                        score = child.getUCTscore()
+                        if score > best_score:
+                            best_score = score
+                            best_children = [child]
+                        elif score == best_score:
+                            best_children.append(child)
+                    current = rand_choice(best_children)
 
-            batch_nodes.append(current)
 
-            # --- Batched Simulation Phase ---
-            if len(batch_nodes) >= batch_size:
-                self._process_batch(batch_nodes)
-                rollouts += len(batch_nodes)
-                batch_nodes.clear()  # Reset batch
-                if rollouts % 1000 < batch_size:  # Log progress every ~1000 rollouts.
-                    logging.info("Rollouts: %d, elapsed time: %.2f sec", rollouts, elapsed)
+                # --- Expansion Phase ---
+                if not current.done:
+                    current.create_child_nodes()
+                    if current.child_nodes:
+                        current = rand_choice(list(current.child_nodes.values()))
 
-        logging.info("Total rollouts performed: %d", rollouts)
+
+                # Schedule the rollout simulation in parallel.
+                future = executor.submit(rollout_simulation, current.game_state, self.starting_player)
+                batch.append((future, current))
+                rollouts += 1
+
+
+                # Process batch once full.
+                if len(batch) >= batch_size:
+                    for future, node in batch:
+                        try:
+                            reward = future.result()
+                            print(f"Node.explore: Rollout reward for node {node.action_index} is {reward}")
+                        except Exception as e:
+                            print(f"Node.explore: Exception during rollout: {e}")
+                            reward = 0.0  # Fallback if simulation fails.
+                        # --- Backpropagation Phase ---
+                        node_to_update = node
+                        while node_to_update:
+                            node_to_update.visits += 1
+                            node_to_update.node_value += reward
+                            node_to_update = node_to_update.parent
+                    batch.clear()
+
+            # Process any remaining futures.
+            for future, node in batch:
+                try:
+                    reward = future.result()
+                except Exception as e:
+                    reward = 0.0
+                node_to_update = node
+                while node_to_update:
+                    node_to_update.visits += 1
+                    node_to_update.node_value += reward
+                    node_to_update = node_to_update.parent
+
+        print("Node.explore: Finished exploration with total rollouts:", rollouts)
+        logging.info(f"Number of rollouts: {rollouts}")
         return self
 
-    def next(self) -> Tuple['Node', Any]:
+    def rollout(self) -> float:
         """
-        Choose the next move based on the child node with the highest average reward (Q-value).
+        Evaluate the current node's board state using the trained model.
         """
+        print("Node.rollout: Performing rollout for node", self.action_index)
+        board_state = copy_board(self.game_state)
+        if gameIsOver(board_state):
+            print("Node.rollout: Game is over, returning EndValue")
+            return EndValue(board_state, AI_PLAYER)
+        result = model_evaluation(board_state, AI_PLAYER, self.starting_player)
+        print(Node.game_state)
+        print("Node.rollout: Rollout result:", result)
+        return result
+
+    def next(self):
+        """
+        Retrieve the child node with the highest visit count.
+        """
+        print("Node.next: Selecting next move")
         if self.done:
             raise ValueError("Game has ended. No next move available.")
         if not self.child_nodes:
             raise ValueError("No children available. Ensure exploration has been performed.")
-        best_child = max(
-            self.child_nodes.values(),
-            key=lambda child: (child.node_value / child.visits) if child.visits > 0 else float('-inf')
-        )
-        avg_q = best_child.node_value / best_child.visits if best_child.visits > 0 else 0.0
-        logging.info("Next move selected: %s with average Q-value: %.3f", best_child.action_index, avg_q)
+        best_child = max(self.child_nodes.values(), key=lambda child: child.visits)
+
+        best_child.game_state.print_board()
         return best_child, best_child.action_index
 
-    def movePlayer(self, playerMove: Any) -> 'Node':
+    def movePlayer(self, playerMove):
         """
-        Update the tree based on the player's move.
+        Update the current node based on a player's move.
         """
-        logging.info("Player made move: %s", playerMove)
+        print("Node.movePlayer: Processing player move", playerMove)
         if playerMove in self.child_nodes:
+            print("Node.movePlayer: Move exists in child nodes, updating root")
             new_root = self.child_nodes[playerMove]
         else:
+
             new_board = copy_board(self.game_state)
             new_board.play_move(playerMove)
             done = gameIsOver(new_board)
             new_root = Node(new_board, done, self, playerMove, self.starting_player)
             self.child_nodes[playerMove] = new_root
+        print("Node.movePlayer: New root set for move", playerMove)
         return new_root
