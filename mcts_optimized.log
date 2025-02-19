@@ -1,0 +1,5 @@
+2025-02-18 23:26:29,736 WARNING: Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-18 23:26:29,767 INFO: Function `function` contains input name(s) resource with unsupported characters which will be renamed to sequential_2_1_dense_8_1_biasadd_readvariableop_resource in the SavedModel.
+2025-02-18 23:26:29,797 INFO: Function `function` contains input name(s) resource with unsupported characters which will be renamed to sequential_2_1_dense_8_1_biasadd_readvariableop_resource in the SavedModel.
+2025-02-18 23:26:29,915 INFO: Assets written to: C:\Users\Constantin Chau\AppData\Local\Temp\tmpjn8s14p7\assets
+2025-02-18 23:26:30,075 INFO: TFLite model converted and saved.

@@ -1,0 +1,185 @@
+2025-02-19 11:31:28,235 - Number of rollouts: 1632
+2025-02-19 11:31:28,247 - Next Action: 3
+2025-02-19 11:31:33,398 - Number of rollouts: 1536
+2025-02-19 11:31:33,409 - Next Action: 3
+2025-02-19 11:31:47,962 - Number of rollouts: 1856
+2025-02-19 11:31:47,975 - Next Action: 3
+2025-02-19 11:31:54,304 - Number of rollouts: 1856
+2025-02-19 11:31:54,315 - Next Action: 0
+2025-02-19 11:32:02,179 - Number of rollouts: 1563
+2025-02-19 11:32:02,192 - Next Action: 3
+2025-02-19 11:32:08,574 - Number of rollouts: 1312
+2025-02-19 11:32:08,585 - Next Action: 3
+2025-02-19 11:32:14,938 - Number of rollouts: 1408
+2025-02-19 11:32:14,951 - Next Action: 3
+2025-02-19 11:32:25,874 - Number of rollouts: 1472
+2025-02-19 11:32:25,885 - Next Action: 4
+2025-02-19 11:32:36,592 - Number of rollouts: 1504
+2025-02-19 11:32:36,606 - Next Action: 2
+2025-02-19 11:32:44,157 - Number of rollouts: 1792
+2025-02-19 11:32:44,169 - Next Action: 2
+2025-02-19 11:32:50,367 - Number of rollouts: 2961
+2025-02-19 11:32:50,381 - Next Action: 2
+2025-02-19 11:32:58,137 - Number of rollouts: 4832
+2025-02-19 11:32:58,150 - Next Action: 4
+2025-02-19 11:33:06,789 - Number of rollouts: 8512
+2025-02-19 11:33:06,804 - Next Action: 1
+2025-02-19 11:33:50,657 - Number of rollouts: 1632
+2025-02-19 11:33:50,671 - Next Action: 2
+2025-02-19 11:33:57,247 - Number of rollouts: 1600
+2025-02-19 11:33:57,259 - Next Action: 6
+2025-02-19 11:34:03,690 - Number of rollouts: 1408
+2025-02-19 11:34:03,700 - Next Action: 3
+2025-02-19 11:34:09,717 - Number of rollouts: 1504
+2025-02-19 11:34:09,729 - Next Action: 3
+2025-02-19 11:34:19,065 - Number of rollouts: 6560
+2025-02-19 11:34:19,079 - Next Action: 3
+2025-02-19 11:45:25,599 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,633 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,638 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,654 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,679 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,699 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,701 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,701 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,703 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,703 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,713 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,721 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,724 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,724 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:25,732 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:27,292 - Number of rollouts: 32
+2025-02-19 11:45:27,311 - Next Action: 6
+2025-02-19 11:45:34,773 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,802 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,802 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,961 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,967 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,986 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:34,988 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,007 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,011 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,023 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,025 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,034 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,038 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,045 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,051 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:35,061 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:45:36,629 - Number of rollouts: 32
+2025-02-19 11:45:36,641 - Next Action: 0
+2025-02-19 11:47:13,222 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:13,261 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:13,309 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:13,349 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:14,900 - Number of rollouts: 32
+2025-02-19 11:47:14,910 - Next Action: 4
+2025-02-19 11:47:27,793 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:27,797 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:27,797 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:27,829 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:27,876 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:27,886 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:29,453 - Number of rollouts: 32
+2025-02-19 11:47:29,465 - Next Action: 0
+2025-02-19 11:47:36,968 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:36,984 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:37,061 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:37,067 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:37,075 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:37,084 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:38,644 - Number of rollouts: 32
+2025-02-19 11:47:38,655 - Next Action: 2
+2025-02-19 11:47:46,643 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,706 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,724 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,726 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,766 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,781 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:46,787 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:48,412 - Number of rollouts: 32
+2025-02-19 11:47:48,424 - Next Action: 0
+2025-02-19 11:47:57,637 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,652 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,699 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,749 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,773 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,775 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,787 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,788 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:57,789 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:47:59,472 - Number of rollouts: 32
+2025-02-19 11:47:59,485 - Next Action: 0
+2025-02-19 11:48:44,562 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,613 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,639 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,640 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,650 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,665 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:44,681 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:48:46,253 - Number of rollouts: 32
+2025-02-19 11:48:46,264 - Next Action: 5
+2025-02-19 11:50:31,730 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,807 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,836 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,898 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,905 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,907 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,912 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:31,919 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,156 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,162 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,272 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,290 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,293 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:52,300 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:50:53,862 - Number of rollouts: 32
+2025-02-19 11:50:53,874 - Next Action: 1
+2025-02-19 11:52:38,425 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:52:38,426 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:52:40,657 - Number of rollouts: 853
+2025-02-19 11:52:40,670 - Next Action: 3
+2025-02-19 11:53:07,986 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:53:08,396 - Number of rollouts: 2
+2025-02-19 11:53:08,411 - Next Action: 0
+2025-02-19 11:58:06,301 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:58:06,780 - Number of rollouts: 2
+2025-02-19 11:58:06,794 - Next Action: 3
+2025-02-19 11:59:52,947 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 11:59:53,346 - Number of rollouts: 2
+2025-02-19 11:59:53,359 - Next Action: 3
+2025-02-19 12:02:17,929 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:02:17,929 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:02:18,400 - Number of rollouts: 2
+2025-02-19 12:02:18,413 - Next Action: 4
+2025-02-19 12:05:49,321 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:05:49,321 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:05:49,840 - Number of rollouts: 2
+2025-02-19 12:05:49,852 - Next Action: 3
+2025-02-19 12:06:25,128 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:06:25,655 - Number of rollouts: 2
+2025-02-19 12:06:25,671 - Next Action: 2
+2025-02-19 12:11:10,833 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:11:11,363 - Number of rollouts: 2
+2025-02-19 12:11:11,375 - Next Action: 2
+2025-02-19 12:11:50,941 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:11:50,941 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:11:51,479 - Number of rollouts: 2
+2025-02-19 12:11:51,491 - Next Action: 0
+2025-02-19 12:12:55,573 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:12:56,168 - Number of rollouts: 2
+2025-02-19 12:12:56,181 - Next Action: 3
+2025-02-19 12:26:40,967 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:26:41,556 - Number of rollouts: 2
+2025-02-19 12:26:41,570 - Next Action: 0
+2025-02-19 12:27:15,497 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:27:15,497 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:27:16,028 - Number of rollouts: 2
+2025-02-19 12:27:16,040 - Next Action: 3
+2025-02-19 12:27:33,907 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:27:34,493 - Number of rollouts: 2
+2025-02-19 12:27:34,507 - Next Action: 2
+2025-02-19 12:27:41,871 - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-02-19 12:27:42,408 - Number of rollouts: 2
+2025-02-19 12:27:42,422 - Next Action: 2
