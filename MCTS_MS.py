@@ -28,20 +28,16 @@ def get_model():
     """Lazily load and return the trained model."""
     global model
     if model is None:
-        print("get_model: Loading model from 'connect4_model.h5'")
         model = load_model('connect4_model.h5')
-    else:
-        print("get_model: Model already loaded")
     return model
 
 
 def board_to_input(board_state):
-    print("board_to_input: Converting board state to model input")
     if hasattr(board_state, "get_board_matrix"):
         board_matrix = board_state.get_board_matrix()
-        print("board_to_input: Retrieved board matrix using get_board_matrix()")
+
     elif hasattr(board_state, "board1") and hasattr(board_state, "board2"):
-        print("board_to_input: Creating board matrix from board1 and board2 attributes")
+
         board_matrix = np.zeros((6, 7), dtype=int)
         for r in range(6):
             for c in range(7):
@@ -50,16 +46,12 @@ def board_to_input(board_state):
                     board_matrix[r, c] = 1
                 elif (board_state.board2 >> idx) & 1:
                     board_matrix[r, c] = 2
-        print("board_to_input: Created board matrix with shape", board_matrix.shape)
-    else:
-        raise ValueError("BitBoard object does not have get_board_matrix or board attributes")
 
     # Continue processing to prepare the model input.
     player1 = (board_matrix == 1).astype(np.float32)
     player2 = (board_matrix == 2).astype(np.float32)
     input_data = np.stack([player1, player2], axis=-1)
-    input_data = np.expand_dims(input_data, axis=0)
-    print("board_to_input: Final input shape:", input_data.shape)
+
     return input_data
 
 
@@ -74,22 +66,21 @@ def model_evaluation(game_state, ai_player, starting_player):
       - If the AI is the starting player: value = (p1 - p2)
       - Otherwise: value = (p2 - p1)
     """
-    print("model_evaluation: Evaluating board state using model")
     mdl = get_model()
     board = board_to_input(game_state)
 
     board_flat = board.reshape(-1, 42)  # Now shape (1,42) if you had one board
 
     probabilities = mdl.predict(board_flat)[0]  # Expected shape: (3,)
-    print("model_evaluation: Model probabilities:", probabilities)
+
     p2, tie, p1 = probabilities
 
     if not starting_player:
         value = p1 - p2
-        print("model_evaluation: AI is starting player, computed value:", value)
+
     else:
         value = p2 - p1
-        print("model_evaluation: AI is not starting player, computed value:", value)
+
     return value
 
 
@@ -140,7 +131,7 @@ def biased_random_move(valid_moves, center_col=3, bias_strength=0.09):
     For Connect 4 (7 columns), the center column is 3.
     Moves closer to the center receive a higher weight.
     """
-    print("biased_random_move: Selecting biased random move")
+
     weights = []
     max_distance = 3  # Maximum distance from the center (columns: 0-6).
     for move in valid_moves:
@@ -160,13 +151,13 @@ def rollout_simulation(game_state, starting_player):
     Instead of running a minimax search or random rollout,
     we simply evaluate the board using the trained model.
     """
-    print("rollout_simulation: Starting simulation")
+
     board_state = copy_board(game_state)
     if gameIsOver(board_state):
-        print("rollout_simulation: Game is over, returning EndValue")
+
         return EndValue(board_state, AI_PLAYER)
     result = model_evaluation(board_state, AI_PLAYER, starting_player)
-    print("rollout_simulation: Simulation result:", result)
+
     return result
 
 
@@ -225,7 +216,7 @@ class Node:
             self.child_nodes[action] = Node(new_board, done, self, action, self.starting_player)
 
 
-    def explore(self, min_rollouts=2, min_time=0.0, max_time=5.0, batch_size=2):
+    def explore(self, min_rollouts=200000, min_time=5.0, max_time=5.0, batch_size=32):
         """
         Explore the tree using parallel rollouts.
 
@@ -279,9 +270,9 @@ class Node:
                     for future, node in batch:
                         try:
                             reward = future.result()
-                            print(f"Node.explore: Rollout reward for node {node.action_index} is {reward}")
+
                         except Exception as e:
-                            print(f"Node.explore: Exception during rollout: {e}")
+
                             reward = 0.0  # Fallback if simulation fails.
                         # --- Backpropagation Phase ---
                         node_to_update = node
@@ -303,7 +294,7 @@ class Node:
                     node_to_update.node_value += reward
                     node_to_update = node_to_update.parent
 
-        print("Node.explore: Finished exploration with total rollouts:", rollouts)
+
         logging.info(f"Number of rollouts: {rollouts}")
         return self
 
@@ -311,37 +302,36 @@ class Node:
         """
         Evaluate the current node's board state using the trained model.
         """
-        print("Node.rollout: Performing rollout for node", self.action_index)
+
         board_state = copy_board(self.game_state)
         if gameIsOver(board_state):
-            print("Node.rollout: Game is over, returning EndValue")
+
             return EndValue(board_state, AI_PLAYER)
         result = model_evaluation(board_state, AI_PLAYER, self.starting_player)
-        print(Node.game_state)
-        print("Node.rollout: Rollout result:", result)
+
         return result
 
     def next(self):
         """
         Retrieve the child node with the highest visit count.
         """
-        print("Node.next: Selecting next move")
+
         if self.done:
             raise ValueError("Game has ended. No next move available.")
         if not self.child_nodes:
             raise ValueError("No children available. Ensure exploration has been performed.")
         best_child = max(self.child_nodes.values(), key=lambda child: child.visits)
 
-        best_child.game_state.print_board()
+
         return best_child, best_child.action_index
 
     def movePlayer(self, playerMove):
         """
         Update the current node based on a player's move.
         """
-        print("Node.movePlayer: Processing player move", playerMove)
+
         if playerMove in self.child_nodes:
-            print("Node.movePlayer: Move exists in child nodes, updating root")
+
             new_root = self.child_nodes[playerMove]
         else:
 
@@ -350,5 +340,5 @@ class Node:
             done = gameIsOver(new_board)
             new_root = Node(new_board, done, self, playerMove, self.starting_player)
             self.child_nodes[playerMove] = new_root
-        print("Node.movePlayer: New root set for move", playerMove)
+
         return new_root
