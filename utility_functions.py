@@ -1,11 +1,11 @@
-from copy import deepcopy
-
+# Dimensions and player definitions
 BOARD_WIDTH = 7
 BOARD_HEIGHT = 6
 COL_SIZE = BOARD_HEIGHT + 1  # = 7 (6 playable rows plus 1 extra bit per column)
 AI_PLAYER = 'o'
 HUMAN_PLAYER = 'x'
 
+from board import BitBoard
 
 def in_bounds(r, c):
     """Return True if row r and column c are within the playable board."""
@@ -79,32 +79,33 @@ def EndValue(bitboard_obj, player):
         return 0
 
 
-def utilityValue(board, player):
-    """ A utility fucntion to evaluate the state of the board and report it to the calling function,
-        utility value is defined as the  score of the player who calles the function - score of opponent player,
-        The score of any player is the sum of each sequence found for this player scalled by large factor for
-        sequences with higher lengths.
+def utilityValue(bitboard_obj, player):
     """
-    if player == HUMAN_PLAYER: opponent = AI_PLAYER
-    else: opponent = HUMAN_PLAYER
+    Returns an evaluation of the current board state from the perspective of 'player'.
 
-    playerfours    = countSequence(board, player, 4)
-    playerthrees   = countSequence(board, player, 3)
-    playertwos     = countSequence(board, player, 2)
-    playerScore    = playerfours*99999 + playerthrees*999 + playertwos*99
+    The score is computed by counting sequences of length 2, 3, and 4
+    and weighting them with increasing factors. (A 4-in-a-row returns +/-infinity.)
+    """
+    opponent = AI_PLAYER if player == HUMAN_PLAYER else HUMAN_PLAYER
 
-    opponentfours  = countSequence(board, opponent, 4)
-    opponentthrees = countSequence(board, opponent, 3)
-    opponenttwos   = countSequence(board, opponent, 2)
-    opponentScore  = opponentfours*99999 + opponentthrees*999 + opponenttwos*99
+    player_fours = countSequence(bitboard_obj, player, 4)
+    player_threes = countSequence(bitboard_obj, player, 3)
+    player_twos = countSequence(bitboard_obj, player, 2)
+    playerScore = player_fours * 100000 + player_threes * 500 + player_twos * 20
 
-    if opponentfours > 0:
-        #This means that the current player lost the game
-        #So return the biggest negative value => -infinity
+    opponent_fours = countSequence(bitboard_obj, opponent, 4)
+    opponent_threes = countSequence(bitboard_obj, opponent, 3)
+    opponent_twos = countSequence(bitboard_obj, opponent, 2)
+    opponentScore = opponent_fours * 100000 + opponent_threes * 500 + opponent_twos * 20
+
+    if opponent_fours > 0:
+        # The current player lost the game.
         return float('-inf')
-    else:
-        #Return the playerScore minus the opponentScore
-        return playerScore - opponentScore
+    if player_fours > 0:
+        # The current player won the game.
+        return float('inf')
+    return playerScore - opponentScore
+
 
 def gameIsOver(bitboard_obj):
     """
@@ -117,34 +118,38 @@ def gameIsOver(bitboard_obj):
     else:
         return False
 
-def copy_board(bitboard):
-    return deepcopy(bitboard)
 
-
-def detect_threats(bitboard):
+def blockOrWinMove(bitboard_obj):
     """
-    Identifies immediate win moves for AI and opponent.
-    Returns:
-        - ai_winning_moves: List of columns where AI can win
-        - opponent_winning_moves: List of columns where opponent can win
+    Returns the first column that either:
+    1. Wins the game for the current player.
+    2. Blocks the opponent from winning.
+
+    If no such move exists, returns -1.
     """
-    ai_winning_moves = []
-    opponent_winning_moves = []
 
-    valid_moves = bitboard.get_valid_moves()
+    # Step 1: Check if there's a winning move for either player
+    for col in range(BOARD_WIDTH):
+        if canPlay(bitboard_obj, col):
+            temp_board = bitboard_obj.copy()
 
-    for move in valid_moves:
-        temp_board = copy_board(bitboard)
+            # Check if AI wins by playing here
+            temp_board.play_move(col)
+            if countSequence(temp_board, AI_PLAYER, 4) > 0:
+                return col  # Play the winning move
 
-        # Check if AI wins
-        temp_board.play_move(move)
-        if gameIsOver(temp_board):
-            ai_winning_moves.append(move)
+            # Check if Human wins by playing here (so we need to block)
+            temp_board.play_move(col)
+            if countSequence(temp_board, HUMAN_PLAYER, 4) > 0:
+                return col  # Block the opponent’s win
 
-        # Check if opponent wins
-        temp_board = copy_board(bitboard)
-        temp_board.play_move(move)
-        if gameIsOver(temp_board):
-            opponent_winning_moves.append(move)
+    return -1  # No immediate win or threat found
 
-    return ai_winning_moves, opponent_winning_moves
+
+def canPlay(bitboard_obj, col):
+    """
+    Checks if a move can be played in the given column.
+    Returns True if the column is not full.
+    """
+    top_bit = 1 << ((col * COL_SIZE) + (BOARD_HEIGHT - 1))
+    return not ((bitboard_obj.board1 | bitboard_obj.board2) & top_bit)

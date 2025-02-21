@@ -1,8 +1,7 @@
 import os
+from copy import deepcopy
 
 import numpy as np
-
-
 # Color definitions (for console output)
 RED     = '\033[1;31;40m'
 RED_BG  = '\033[0;31;47m'
@@ -35,23 +34,29 @@ for col in range(BOARD_WIDTH):
 
 def is_winning_position(pos):
     """
-    Efficiently checks if 'pos' (a bitboard) contains a 4-in-a-row.
-    Uses bitwise operations to detect vertical, horizontal, and diagonal wins.
+    Check whether the given bitboard 'pos' contains a winning 4‑in‑a‑row.
+    In this representation:
+      - Vertical neighbors are 1 bit apart.
+      - Horizontal neighbors are COL_SIZE (7) bits apart.
+      - Diagonals: one diagonal shifts by (COL_SIZE-1)=6 and the other by (COL_SIZE+1)=8.
     """
-    # Vertical (shift by 1)
-    if pos & (pos >> 1) & (pos >> 2) & (pos >> 3):
+    # Vertical check (shift by 1)
+    m = pos & (pos >> 1)
+    if m & (m >> 2):
         return True
-    # Horizontal (shift by COL_SIZE, i.e., 7)
-    if pos & (pos >> COL_SIZE) & (pos >> (2 * COL_SIZE)) & (pos >> (3 * COL_SIZE)):
+    # Horizontal check (shift by COL_SIZE, i.e. 7)
+    m = pos & (pos >> COL_SIZE)
+    if m & (m >> (2 * COL_SIZE)):
         return True
-    # Diagonal (\) (shift by COL_SIZE+1, i.e., 8)
-    if pos & (pos >> (COL_SIZE + 1)) & (pos >> (2 * (COL_SIZE + 1))) & (pos >> (3 * (COL_SIZE + 1))):
+    # Diagonal check (diagonal /): shift by (COL_SIZE - 1) which is 6
+    m = pos & (pos >> (COL_SIZE - 1))
+    if m & (m >> (2 * (COL_SIZE - 1))):
         return True
-    # Diagonal (/) (shift by COL_SIZE-1, i.e., 6)
-    if pos & (pos >> (COL_SIZE - 1)) & (pos >> (2 * (COL_SIZE - 1))) & (pos >> (3 * (COL_SIZE - 1))):
+    # Diagonal check (diagonal \): shift by (COL_SIZE + 1) which is 8
+    m = pos & (pos >> (COL_SIZE + 1))
+    if m & (m >> (2 * (COL_SIZE + 1))):
         return True
     return False
-
 
 class BitBoard:
     def __init__(self):
@@ -152,23 +157,44 @@ class BitBoard:
                     board[r, col] = 2
         return board
 
+    def get_board_matrix(self):
+        # Create an empty board: 0 = empty, 1 = player1, 2 = player2.
+        board_matrix = np.zeros((6, 7), dtype=int)
+        for r in range(6):
+            for c in range(7):
+                idx = r * 7 + c  # Adjust if your mapping is different.
+                if (self.board1 >> idx) & 1:
+                    board_matrix[r, c] = 1
+                elif (self.board2 >> idx) & 1:
+                    board_matrix[r, c] = 2
+        return board_matrix
 
-    def simulate_move(self, col):
-        """Returns a new BitBoard with the move applied (without modifying original)."""
-        new_board = BitBoard()
-        new_board.board1 = self.board1
-        new_board.board2 = self.board2
-        new_board.mask = self.mask
-        new_board.current_player = self.current_player
+    def copy(bitboard):
+        """
+        Creates a copy of the given bitboard efficiently.
+        """
+        return deepcopy(bitboard)
 
-        # Apply move using bitwise operations
-        move = (self.mask + bottom_mask[col]) & column_mask[col]
-        if self.current_player == 1:
-            new_board.board1 |= move
-        else:
-            new_board.board2 |= move
-        new_board.mask |= move
-        new_board.current_player = 3 - self.current_player  # Switch player
+    def find_winning_or_blocking_move(bitboard):
+        """
+        Finds a move that either wins the game or blocks the opponent's win.
+        Returns the column index (0-indexed) of the best move or None if no immediate threat is found.
+        """
+        for col in range(BOARD_WIDTH):
+            if not bitboard.can_play(col):
+                continue  # Skip full columns
 
-        return new_board
+            # Simulate move for the current player
+            temp_board = bitboard.copy()
+            _, _, win = temp_board.play_move(col)
+            if win:
+                return col  # Winning move found
 
+            # Simulate move for the opponent to check if they have a winning move
+            temp_board = bitboard.copy()
+            temp_board.current_player = 2 if bitboard.current_player == 1 else 1  # Switch to opponent
+            _, _, opponent_win = temp_board.play_move(col)
+            if opponent_win:
+                return col  # Blocking move found
+
+        return None  # No immediate winning or blocking move

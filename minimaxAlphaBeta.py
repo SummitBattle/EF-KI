@@ -66,3 +66,5 @@ def minimax_alpha_beta(bitboard, depth, alpha, beta, maximizingPlayer):
                 break  # Alpha-Beta Pruning
 
     return best_move, best_score
+
+

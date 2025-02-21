@@ -19,7 +19,7 @@ logging.basicConfig(
 # Global constants for bias calculations
 CENTER_COL = 3
 MAX_DISTANCE = 3
-BIAS_STRENGTH = 0.1 # Increased for stronger bias toward the center
+BIAS_STRENGTH = 0.13 # Increased for stronger bias toward the center
 
 
 def copy_board(bitboard):
@@ -99,7 +99,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.1 # Adjusted exploration factor
+        self.c = 1.3 # Adjusted exploration factor
         self.starting_player = starting_player
 
     def getUCTscore(self):
@@ -115,8 +115,9 @@ class Node:
 
     def explore(self, minimax_depth=3, min_rollouts=100000, max_time=6.0, batch_size=32):
         """
-        Explores using parallelized guided rollouts.
+        Explores using parallelized guided rollouts with an immediate threat detection check.
         """
+
         start_time = time.perf_counter()
         rollouts = 0
         batch = []
@@ -138,7 +139,6 @@ class Node:
                         new_board.play_move(action)
                         done = gameIsOver(new_board)
                         current.child_nodes[action] = Node(new_board, done, current, action, self.starting_player)
-
                 future = executor.submit(rollout_simulation, current.game_state, minimax_depth)
                 batch.append((future, current))
                 rollouts += 1
@@ -180,68 +180,3 @@ class Node:
         done = gameIsOver(new_board)
         new_node = Node(new_board, done, self, playerMove, self.starting_player)
         self.child_nodes[playerMove] = new_node
-        return new_node
-
-import json
-import numpy as np
-
-def initialize_board():
-    """Creates an empty 6x7 Connect Four board filled with zeros."""
-    return np.zeros((6, 7), dtype=int)
-
-import json
-import os
-
-import os
-import json
-
-def self_play(initial_state, num_games=10, output_file="self_play_results.json"):
-    results = []
-
-    # Load existing results if the file exists
-    if os.path.exists(output_file):
-        with open(output_file, "r") as f:
-            try:
-                results = json.load(f)
-            except json.JSONDecodeError:
-                results = []
-
-    for game_id in range(len(results) + 1, len(results) + num_games + 1):
-        print(f"Starting game {game_id}...")
-        game_state = copy_board(initial_state)
-        root = Node(game_state, done=False, parent_node=None, action_index=None, starting_player=AI_PLAYER)
-        move_sequence = []
-        current_player = AI_PLAYER
-
-        while not gameIsOver(game_state):
-            root.explore(min_rollouts=100000, max_time=6.0, batch_size=16)
-            best_child, move = root.next()
-            move_sequence.append((current_player, move))
-            game_state.play_move(move)
-            root = best_child
-            current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
-
-        winner = EndValue(game_state, AI_PLAYER)
-        results.append({
-            "game_id": game_id,
-            "moves": move_sequence,
-            "winner": "AI" if winner == 1 else "Human" if winner == 0 else "Draw"
-        })
-
-        print(f"Game {game_id} finished. Winner: {'AI' if winner == 1 else 'Human' if winner == 0 else 'Draw'}")
-
-        # Save the results every 100 games
-        if game_id % 1 == 0:
-            with open(output_file, "w") as f:
-                json.dump(results, f, indent=4)
-            print(f"Self-play results saved after {game_id} games.")
-
-    # Final save after all games are completed
-    with open(output_file, "w") as f:
-        json.dump(results, f, indent=4)
-
-    print(f"Self-play results stored in {output_file}")
-
-
-board = BitBoard()
-self_play(board, num_games=1000000)

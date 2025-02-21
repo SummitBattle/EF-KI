@@ -1,7 +1,6 @@
 import math
 import os
 import ConnectAlgorithm
-import board
 import minimaxAlphaBeta
 
 from board import *  # import the bitboard implementation
@@ -62,22 +61,25 @@ import math
 import random
 
 
-
 def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     """
     Handles the AI's turn using the bitboard representation.
     On the very first move the AI selects the middle column (3);
-    otherwise, it uses your ConnectAlgorithm (e.g., MCTS) to choose a move.
+    otherwise, it uses the best available algorithm to choose a move.
     """
     global parent_node
-    if first_move:
-        ai_move = 3  # choose the middle column on the first move
-    elif move_count >=20:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(bitboard, 8, -math.inf, math.inf, bitboard.current_player)[0]
 
+    # Check for immediate win or block first
+    threat = bitboard.find_winning_or_blocking_move()
+    if threat is not None:
+        ai_move = threat
+        parent_node = None
+    elif first_move:
+        ai_move = 3  # Choose the middle column on the first move
+    elif move_count >= 20:
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(bitboard, 20, -math.inf, math.inf, bitboard.current_player)[0]
     else:
-
-        ai_move, y= ConnectAlgorithm.start_MCTS(
+        ai_move, _ = ConnectAlgorithm.start_MCTS(
             bitboard,
             parent_node=parent_node,
             playerMove=last_human_move,
