@@ -1,8 +1,13 @@
+import math
 import os
 import ConnectAlgorithm
+import board
 import minimaxAlphaBeta
 
 from board import *  # import the bitboard implementation
+import importlib
+import board
+importlib.reload(board)
 
 # Global variable for MCTS
 global parent_node
@@ -53,6 +58,11 @@ def playerWins(bitboard):
     exit()
 
 
+import math
+import random
+
+
+
 def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     """
     Handles the AI's turn using the bitboard representation.
@@ -62,8 +72,8 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     global parent_node
     if first_move:
         ai_move = 3  # choose the middle column on the first move
-    elif move_count >=25:
-        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(bitboard, 14, bitboard.current_player)[0]
+    elif move_count >=20:
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(bitboard, 8, -math.inf, math.inf, bitboard.current_player)[0]
 
     else:
 
@@ -76,8 +86,6 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
 
     row, col, win = bitboard.play_move(ai_move)
     return bitboard, win, ai_move
-
-
 def aiWins(bitboard):
     """
     Handles the AI win scenario.

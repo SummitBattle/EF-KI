@@ -1,105 +1,68 @@
-from copy import deepcopy
 from random import shuffle
-
-# Assume these are defined in your adapted utility_functions and bitboard modules:
+from board import BitBoard  # Assuming your BitBoard class is correctly implemented
 from utility_functions import utilityValue, gameIsOver, HUMAN_PLAYER, AI_PLAYER
+from copy import deepcopy
 
 
-# We assume that your BitBoard class replaces the old board module.
-# from board import getValidMoves, makeMove  --> replaced by BitBoard methods
-
-def MiniMaxAlphaBeta(bitboard, depth, player):
+def minimax_alpha_beta(bitboard, depth, alpha, beta, maximizingPlayer):
     """
-    Return the best move (column index) and its score using MiniMax with Alpha-Beta pruning.
+    Perform Minimax with Alpha-Beta Pruning on a BitBoard representation of Connect 4.
 
     Parameters:
-      - bitboard: current BitBoard state
-      - depth: search depth
-      - player: the maximizing player's symbol (e.g., HUMAN_PLAYER or AI_PLAYER)
+        - bitboard: The current BitBoard state.
+        - depth: Remaining depth for the search.
+        - alpha: Best already explored option along the path to maximizer.
+        - beta: Best already explored option along the path to minimizer.
+        - maximizingPlayer: True if it's the AI's turn, False if it's the opponent's turn.
+
+    Returns:
+        - best_move: Column index of the best move.
+        - best_score: Score of the best move.
     """
-    valid_moves = bitboard.get_valid_moves()  # List of valid column moves
-    shuffle(valid_moves)  # Randomize move order
+    valid_moves = bitboard.get_valid_moves()
+    shuffle(valid_moves)  # Randomize move order to improve AI variety
+
+    if depth == 0 or gameIsOver(bitboard) or not valid_moves:
+        return None, utilityValue(bitboard, AI_PLAYER)  # Evaluate board state
 
     best_move = None
-    best_score = float("-inf")
 
-    alpha = float("-inf")
-    beta = float("inf")
-    opponent = HUMAN_PLAYER if player == AI_PLAYER else AI_PLAYER
+    if maximizingPlayer:  # AI's turn (maximize)
+        best_score = float("-inf")
+        for move in valid_moves:
+            temp_board = deepcopy(bitboard)  # Create a copy of the bitboard
+            _, _, win = temp_board.play_move(move)  # Simulate move
 
-    for move in valid_moves:
-        temp_board = deepcopy(bitboard)
-        # Force the move to be played by the maximizing player.
-        temp_board.current_player = player
-        _, _, _ = temp_board.play_move(move)
-        board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
+            if win:  # If AI can win immediately, return move
+                return move, float("inf")
 
-        if board_score > best_score:
-            best_score = board_score
-            best_move = move
+            _, board_score = minimax_alpha_beta(temp_board, depth - 1, alpha, beta, False)
 
-        alpha = max(alpha, best_score)
-        if alpha >= beta:
-            break  # Alpha-beta cutoff
+            if board_score > best_score:
+                best_score = board_score
+                best_move = move
+
+            alpha = max(alpha, best_score)
+            if alpha >= beta:
+                break  # Alpha-Beta Pruning
+
+    else:  # Opponent's turn (minimize)
+        best_score = float("inf")
+        for move in valid_moves:
+            temp_board = deepcopy(bitboard)
+            _, _, win = temp_board.play_move(move)
+
+            if win:  # If opponent can win immediately, return worst-case score
+                return move, float("-inf")
+
+            _, board_score = minimax_alpha_beta(temp_board, depth - 1, alpha, beta, True)
+
+            if board_score < best_score:
+                best_score = board_score
+                best_move = move
+
+            beta = min(beta, best_score)
+            if alpha >= beta:
+                break  # Alpha-Beta Pruning
 
     return best_move, best_score
-
-
-def minimizeBeta(bitboard, depth, alpha, beta, player, opponent):
-    """
-    Minimizing part of MiniMax. Simulate opponent moves.
-
-    Parameters:
-      - bitboard: current BitBoard state
-      - depth: search depth
-      - alpha: current alpha value
-      - beta: current beta value
-      - player: maximizing player's symbol
-      - opponent: minimizing player's symbol
-    """
-    valid_moves = bitboard.get_valid_moves()
-    if depth == 0 or not valid_moves or gameIsOver(bitboard):
-        return utilityValue(bitboard, player)
-
-    for move in valid_moves:
-        temp_board = deepcopy(bitboard)
-        # Force the move to be played by the opponent.
-        temp_board.current_player = opponent
-        _, _, _ = temp_board.play_move(move)
-        board_score = maximizeAlpha(temp_board, depth - 1, alpha, beta, player, opponent)
-
-        beta = min(beta, board_score)
-        if alpha >= beta:
-            break  # Pruning
-
-    return beta
-
-
-def maximizeAlpha(bitboard, depth, alpha, beta, player, opponent):
-    """
-    Maximizing part of MiniMax. Simulate moves for the maximizing player.
-
-    Parameters:
-      - bitboard: current BitBoard state
-      - depth: search depth
-      - alpha: current alpha value
-      - beta: current beta value
-      - player: maximizing player's symbol
-      - opponent: minimizing player's symbol
-    """
-    valid_moves = bitboard.get_valid_moves()
-    if depth == 0 or not valid_moves or gameIsOver(bitboard):
-        return utilityValue(bitboard, player)
-
-    for move in valid_moves:
-        temp_board = deepcopy(bitboard)
-        # Force the move to be played by the maximizing player.
-        temp_board.current_player = player
-        _, _, _ = temp_board.play_move(move)
-        board_score = minimizeBeta(temp_board, depth - 1, alpha, beta, player, opponent)
-
-        alpha = max(alpha, board_score)
-        if alpha >= beta:
-            break  # Pruning
-
-    return alpha

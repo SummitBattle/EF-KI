@@ -1,6 +1,8 @@
 import os
 
 import numpy as np
+
+
 # Color definitions (for console output)
 RED     = '\033[1;31;40m'
 RED_BG  = '\033[0;31;47m'
@@ -33,29 +35,23 @@ for col in range(BOARD_WIDTH):
 
 def is_winning_position(pos):
     """
-    Check whether the given bitboard 'pos' contains a winning 4‑in‑a‑row.
-    In this representation:
-      - Vertical neighbors are 1 bit apart.
-      - Horizontal neighbors are COL_SIZE (7) bits apart.
-      - Diagonals: one diagonal shifts by (COL_SIZE-1)=6 and the other by (COL_SIZE+1)=8.
+    Efficiently checks if 'pos' (a bitboard) contains a 4-in-a-row.
+    Uses bitwise operations to detect vertical, horizontal, and diagonal wins.
     """
-    # Vertical check (shift by 1)
-    m = pos & (pos >> 1)
-    if m & (m >> 2):
+    # Vertical (shift by 1)
+    if pos & (pos >> 1) & (pos >> 2) & (pos >> 3):
         return True
-    # Horizontal check (shift by COL_SIZE, i.e. 7)
-    m = pos & (pos >> COL_SIZE)
-    if m & (m >> (2 * COL_SIZE)):
+    # Horizontal (shift by COL_SIZE, i.e., 7)
+    if pos & (pos >> COL_SIZE) & (pos >> (2 * COL_SIZE)) & (pos >> (3 * COL_SIZE)):
         return True
-    # Diagonal check (diagonal /): shift by (COL_SIZE - 1) which is 6
-    m = pos & (pos >> (COL_SIZE - 1))
-    if m & (m >> (2 * (COL_SIZE - 1))):
+    # Diagonal (\) (shift by COL_SIZE+1, i.e., 8)
+    if pos & (pos >> (COL_SIZE + 1)) & (pos >> (2 * (COL_SIZE + 1))) & (pos >> (3 * (COL_SIZE + 1))):
         return True
-    # Diagonal check (diagonal \): shift by (COL_SIZE + 1) which is 8
-    m = pos & (pos >> (COL_SIZE + 1))
-    if m & (m >> (2 * (COL_SIZE + 1))):
+    # Diagonal (/) (shift by COL_SIZE-1, i.e., 6)
+    if pos & (pos >> (COL_SIZE - 1)) & (pos >> (2 * (COL_SIZE - 1))) & (pos >> (3 * (COL_SIZE - 1))):
         return True
     return False
+
 
 class BitBoard:
     def __init__(self):
@@ -156,14 +152,23 @@ class BitBoard:
                     board[r, col] = 2
         return board
 
-    def get_board_matrix(self):
-        # Create an empty board: 0 = empty, 1 = player1, 2 = player2.
-        board_matrix = np.zeros((6, 7), dtype=int)
-        for r in range(6):
-            for c in range(7):
-                idx = r * 7 + c  # Adjust if your mapping is different.
-                if (self.board1 >> idx) & 1:
-                    board_matrix[r, c] = 1
-                elif (self.board2 >> idx) & 1:
-                    board_matrix[r, c] = 2
-        return board_matrix
+
+    def simulate_move(self, col):
+        """Returns a new BitBoard with the move applied (without modifying original)."""
+        new_board = BitBoard()
+        new_board.board1 = self.board1
+        new_board.board2 = self.board2
+        new_board.mask = self.mask
+        new_board.current_player = self.current_player
+
+        # Apply move using bitwise operations
+        move = (self.mask + bottom_mask[col]) & column_mask[col]
+        if self.current_player == 1:
+            new_board.board1 |= move
+        else:
+            new_board.board2 |= move
+        new_board.mask |= move
+        new_board.current_player = 3 - self.current_player  # Switch player
+
+        return new_board
+
