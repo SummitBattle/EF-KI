@@ -78,7 +78,6 @@ def aiWins(game_state):
 def mainFunction():
     """Main game loop using the bitboard representation."""
     os.system('cls' if os.name == 'nt' else 'clear')
-    human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
 
     # Create a new bitboard instance
     game_state = BitBoard()
@@ -87,7 +86,11 @@ def mainFunction():
     parent_node = None
     last_human_move = None
     first_move = True
-
+    human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
+    if human_starts:
+        game_state.current_player = 1
+    else:
+        game_state.current_player = 2
 
     while not game_state.is_board_filled():
         if game_state.current_player == 1:  # Human's turn
@@ -96,7 +99,7 @@ def mainFunction():
             last_human_move = human_move
             if win:
                 playerWins(game_state)
-        else:  # AI's turn
+        else: # AI's turn
             game_state, win, ai_move = aiTurn(game_state, move_count, last_human_move, human_starts, first_move)
             move_count += 1
             first_move = False

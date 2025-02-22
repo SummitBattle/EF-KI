@@ -92,7 +92,7 @@ class Node:
         center_bias = BIAS_STRENGTH * (MAX_DISTANCE - abs(move_col - CENTER_COL))
         return exploitation + exploration + center_bias
 
-    def explore(self,min_rollouts=100000, max_time=5.0, batch_size=32):
+    def explore(self,min_rollouts=100000, max_time=6.0, batch_size=64):
         """
         Explores using parallelized guided rollouts with an immediate threat detection check.
         """
