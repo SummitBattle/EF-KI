@@ -1,5 +1,6 @@
 
 import math
+
 import ConnectAlgorithm
 import minimaxAlphaBeta
 from board import *  # import the bitboard implementation
@@ -102,9 +103,7 @@ def mainFunction():
             print(f"AI MOVE WAS: {ai_move + 1}")
             if win:
                 aiWins(game_state)
-            game_state.print_board()
 
-    print("GAME OVER\nIt's a draw!")
     playagain = input(YELLOW + 'DO YOU WANT TO PLAY AGAIN (y/n)? ' + WHITE).lower() == 'y'
     if playagain:
         mainFunction()

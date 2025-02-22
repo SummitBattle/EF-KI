@@ -5,7 +5,6 @@ COL_SIZE = BOARD_HEIGHT + 1  # = 7 (6 playable rows plus 1 extra bit per column)
 AI_PLAYER = 'o'
 HUMAN_PLAYER = 'x'
 
-from board import BitBoard
 
 def in_bounds(r, c):
     """Return True if row r and column c are within the playable board."""

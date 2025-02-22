@@ -1,6 +1,6 @@
-import numpy as np
 import os
-from copy import deepcopy
+
+import numpy as np
 
 # Color definitions (for console output)
 RED = '\033[1;31;40m'

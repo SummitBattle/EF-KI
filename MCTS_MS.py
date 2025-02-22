@@ -1,8 +1,7 @@
+import concurrent.futures
+import math
 import os
 import time
-import math
-import concurrent.futures
-import logging
 from random import random
 
 from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue

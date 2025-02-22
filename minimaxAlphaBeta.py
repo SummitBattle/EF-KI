@@ -1,7 +1,7 @@
-from random import shuffle
-from board import BitBoard  # Assuming your BitBoard class is correctly implemented
-from utility_functions import utilityValue, gameIsOver, HUMAN_PLAYER, AI_PLAYER
 from copy import deepcopy
+from random import shuffle
+
+from utility_functions import utilityValue, gameIsOver, AI_PLAYER
 
 
 def minimax_alpha_beta(bitboard, depth, alpha, beta, maximizingPlayer):
