@@ -107,28 +107,33 @@ class BitBoard:
         return False
 
     def print_board(self):
-        """Clear the screen and print the board in a human-readable form."""
+        """Clear the screen and print the board in a human‑readable form."""
         os.system('cls' if os.name == 'nt' else 'clear')
         moves_played = len(self.moves)
-        print(f'{YELLOW}         ROUND #{moves_played}{WHITE}')
+        print('')
+        print(YELLOW + '         ROUND #' + str(moves_played) + WHITE)
         print('')
         print("\t      1   2   3   4   5   6   7")
         print("\t      -   -   -   -   -   -   -")
-
         # Print rows from top (row 6 is the extra bit; playable rows are 5 down to 0)
         for r in range(BOARD_HEIGHT - 1, -1, -1):
-            print(WHITE + "\t", r + 1, ' ', end="")
+            print(WHITE + "\t", r+1, ' ', end="")
             for col in range(BOARD_WIDTH):
+                # Compute the bit corresponding to row r in column col
                 bit = 1 << (col * COL_SIZE + r)
                 if self.board1 & bit:
+                    # Player 1 piece ('x') in blue
                     piece = BLUE + 'x' + WHITE
                 elif self.board2 & bit:
+                    # Player 2 piece ('o') in red
                     piece = RED + 'o' + WHITE
                 else:
                     piece = ' '
-                print(f"| {piece} ", end=" ")
+                print("| " + piece, end=" ")
             print("|")
         print('')
+
+
 
     def copy(self):
         """
