@@ -1,28 +1,16 @@
 import os
 import time
 import math
-from copy import deepcopy
 import concurrent.futures
 import logging
 from random import random
 
-from board import BitBoard
-from minimaxAlphaBeta import minimax_alpha_beta
 from utility_functions import gameIsOver, AI_PLAYER, HUMAN_PLAYER, EndValue
-
-# Logging configuration
-logging.basicConfig(
-    filename='rollouts.log',
-    format='%(asctime)s - %(message)s',
-    level=logging.INFO  # Change to DEBUG for more detailed logs
-)
 
 # Global constants for bias calculations
 CENTER_COL = 3
 MAX_DISTANCE = 3
 BIAS_STRENGTH = 0.13  # Increased for stronger bias toward the center
-
-
 
 
 def get_move_column(move):
@@ -147,7 +135,6 @@ class Node:
                             node = node.parent
                     batch.clear()
 
-        logging.info(f"Rollouts completed: {rollouts}")
         return self
 
     def next(self):
