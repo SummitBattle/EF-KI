@@ -55,8 +55,8 @@ def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
         parent_node = None
     elif first_move:
         ai_move = 3  # Middle column
-    elif move_count >= 25:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state, 9, -math.inf, math.inf, game_state.current_player)[0]
+    elif move_count >= 15:
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state, 8, -math.inf, math.inf, game_state.current_player)[0]
     else:
         ai_move, _ = ConnectAlgorithm.start_MCTS(game_state, parent_node=parent_node, playerMove=last_human_move, human_starts=human_starts)
 
@@ -104,6 +104,7 @@ def mainFunction():
             move_count += 1
             first_move = False
             print(f"AI MOVE WAS: {ai_move + 1}")
+            game_state.print_board()
             if win:
                 aiWins(game_state)
 
