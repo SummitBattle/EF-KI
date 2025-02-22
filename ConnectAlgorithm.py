@@ -1,11 +1,5 @@
 import logging
 from MCTS_MS import Node
-from utility_functions import blockOrWinMove
-# Parameters for the Q-network
-INPUT_SIZE = 42  # Flattened 6x7 Connect 4 board
-OUTPUT_SIZE = 7  # Number of columns for possible moves
-Q_NETWORK_PATH = "q_network.pth"  # Path to the pretrained Q-network file
-from board import BitBoard
 
 
 def start_MCTS(game_state, done=False, parent_node=None, action_index=None, playerMove=None, human_starts=True):
@@ -38,12 +32,7 @@ def start_MCTS(game_state, done=False, parent_node=None, action_index=None, play
     # If a parent node exists and a move was made by the player, update the tree accordingly.
     if parent_node and playerMove is not None:
         root = root.movePlayer(playerMove)
-    print("ROOT GAME STATE")
-    root.game_state.print_board()
-    root.game_state.print_board()
-    root.game_state.print_board()
-    root.game_state.print_board()
-    # Perform exploration using MCTS with Q-learning guidance.
+
     root.explore()
 
 

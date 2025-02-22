@@ -6,7 +6,7 @@ import minimaxAlphaBeta
 from board import *  # import the bitboard implementation
 import importlib
 import board
-importlib.reload(board)
+
 
 # Global variable for MCTS
 global parent_node
@@ -45,11 +45,11 @@ def humanTurn(bitboard):
     return bitboard, win, col
 
 
-def playerWins(bitboard):
+def playerWins(game_state):
     """
     Handles the human win scenario.
     """
-    bitboard.print_board()
+    game_state.print_board()
     print(BLUE + "HUMAN WINS !!\n" + WHITE)
     playagain = input(YELLOW + 'DO YOU WANT TO PLAY AGAIN (y/n)? ' + WHITE).lower() == 'y'
     if playagain:
@@ -61,7 +61,7 @@ import math
 import random
 
 
-def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
+def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
     """
     Handles the AI's turn using the bitboard representation.
     On the very first move the AI selects the middle column (3);
@@ -70,29 +70,36 @@ def aiTurn(bitboard, move_count, last_human_move, human_starts, first_move):
     global parent_node
 
     # Check for immediate win or block first
-    threat = bitboard.find_winning_or_blocking_move()
+    threat = game_state.find_winning_or_blocking_move()
     if threat is not None:
         ai_move = threat
         parent_node = None
     elif first_move:
         ai_move = 3  # Choose the middle column on the first move
     elif move_count >= 20:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(bitboard, 20, -math.inf, math.inf, bitboard.current_player)[0]
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state, 9, -math.inf, math.inf, game_state.current_player)[0]
     else:
         ai_move, _ = ConnectAlgorithm.start_MCTS(
-            bitboard,
+            game_state,
             parent_node=parent_node,
             playerMove=last_human_move,
             human_starts=human_starts
         )
 
-    row, col, win = bitboard.play_move(ai_move)
-    return bitboard, win, ai_move
-def aiWins(bitboard):
+    try:
+
+        row, col, win = game_state.play_move(ai_move)
+    except:
+        print("CANT PLAY MOVE, MOVE IS")
+        print(ai_move)
+        print("BOARD IS")
+        game_state.print_board()
+    return game_state, win, ai_move
+def aiWins(game_state):
     """
     Handles the AI win scenario.
     """
-    bitboard.print_board()
+    game_state.print_board()
     print(RED + "AI WINS !!!!\n" + WHITE)
     playagain = input(YELLOW + 'DO YOU WANT TO PLAY AGAIN (y/n)? ' + WHITE).lower() == 'y'
     if playagain:
@@ -112,50 +119,50 @@ def mainFunction():
     human_starts = input(YELLOW + 'DO YOU WANT TO START (y/n)? ' + WHITE).lower() == 'y'
 
     # Create a new bitboard instance.
-    board = BitBoard()
+    game_state = BitBoard()
     move_count = 0
     global parent_node
     parent_node = None
     last_human_move = None
     first_move = True
 
-    board.print_board()
+    game_state.print_board()
 
-    while not board.is_board_filled():
+    while not game_state.is_board_filled():
         if human_starts:
             # When human starts, human is Player 1 and AI is Player 2.
-            if board.current_player == 1:  # Human's turn
-                board, win, human_move = humanTurn(board)
+            if game_state.current_player == 1:  # Human's turn
+                game_state, win, human_move = humanTurn(game_state)
                 move_count += 1
                 last_human_move = human_move
-                board.print_board()
+                game_state.print_board()
                 if win:
-                    playerWins(board)
+                    playerWins(game_state)
             else:  # AI's turn
-                board, win, ai_move = aiTurn(board, move_count, last_human_move, human_starts, first_move)
+                game_state, win, ai_move = aiTurn(game_state, move_count, last_human_move, human_starts, first_move)
                 move_count += 1
                 first_move = False
-                board.print_board()
+                game_state.print_board()
                 print(f" AI MOVE WAS: {ai_move + 1}")
                 if win:
-                    aiWins(board)
+                    aiWins(game_state)
         else:
             # When human does not start, AI is Player 1 and human is Player 2.
-            if board.current_player == 1:  # AI's turn
-                board, win, ai_move = aiTurn(board, move_count, last_human_move, human_starts, first_move)
+            if game_state.current_player == 1:  # AI's turn
+                game_state, win, ai_move = aiTurn(game_state, move_count, last_human_move, human_starts, first_move)
                 move_count += 1
                 first_move = False
-                board.print_board()
+                game_state.print_board()
                 print(f" AI MOVE WAS: {ai_move + 1}")
                 if win:
-                    aiWins(board)
+                    aiWins(game_state)
             else:  # Human's turn
-                board, win, human_move = humanTurn(board)
+                game_state, win, human_move = humanTurn(game_state)
                 move_count += 1
                 last_human_move = human_move
-                board.print_board()
+                game_state.print_board()
                 if win:
-                    playerWins(board)
+                    playerWins(game_state)
     else:
         print("GAME OVER\nIt's a draw!")
         playagain = input(YELLOW + 'DO YOU WANT TO PLAY AGAIN (y/n)? ' + WHITE).lower() == 'y'

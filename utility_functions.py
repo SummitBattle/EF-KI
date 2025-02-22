@@ -17,15 +17,19 @@ def sequenceExists(pos, r, c, dr, dc, length):
     Check if starting at (r, c) and proceeding in direction (dr, dc)
     there are 'length' consecutive bits set in the bitboard 'pos'.
     """
+    end_r = r + (length - 1) * dr
+    end_c = c + (length - 1) * dc
+    if not in_bounds(end_r, end_c):  # Check if the sequence will go out of bounds
+        return False
+
+    # Check for each cell in the sequence
     for i in range(length):
         rr = r + i * dr
         cc = c + i * dc
-        if not in_bounds(rr, cc):
-            return False
-        # Compute the bit position: each column occupies COL_SIZE bits.
         bit = 1 << (cc * COL_SIZE + rr)
         if not (pos & bit):
             return False
+
     return True
 
 
@@ -40,27 +44,32 @@ def countSequence(bitboard_obj, player, length):
        - Horizontal (to the right): dr = 0, dc = 1
        - Positive diagonal (down-right): dr = 1, dc = 1
        - Negative diagonal (up-right): dr = -1, dc = 1
-
-    Note that sequences may overlap. This is similar to your original approach.
     """
-    # Choose the correct bitboard: here we assume that if player == HUMAN_PLAYER,
-    # their pieces are stored in board1; otherwise in board2.
     pos = bitboard_obj.board1 if player == HUMAN_PLAYER else bitboard_obj.board2
     totalCount = 0
+
+    # Use a set to avoid re-checking the same position in different directions
+    checked_positions = set()
+
     # Loop over all playable cells (rows 0 to BOARD_HEIGHT-1, cols 0 to BOARD_WIDTH-1)
     for r in range(BOARD_HEIGHT):
         for c in range(BOARD_WIDTH):
+            if (r, c) in checked_positions:
+                continue  # Skip already checked cells
             # Compute the bit for cell (r, c)
             bit = 1 << (c * COL_SIZE + r)
             if pos & bit:
-                if sequenceExists(pos, r, c, 1, 0, length):  # vertical
-                    totalCount += 1
-                if sequenceExists(pos, r, c, 0, 1, length):  # horizontal
-                    totalCount += 1
-                if sequenceExists(pos, r, c, 1, 1, length):  # positive diagonal
-                    totalCount += 1
-                if sequenceExists(pos, r, c, -1, 1, length):  # negative diagonal
-                    totalCount += 1
+                # Check all directions (vertical, horizontal, diagonals)
+                directions = [(1, 0), (0, 1), (1, 1), (-1, 1)]
+                for dr, dc in directions:
+                    if sequenceExists(pos, r, c, dr, dc, length):
+                        totalCount += 1
+                        # Mark all positions in this sequence as checked
+                        for i in range(length):
+                            rr = r + i * dr
+                            cc = c + i * dc
+                            checked_positions.add((rr, cc))
+
     return totalCount
 
 
@@ -111,12 +120,9 @@ def gameIsOver(bitboard_obj):
     """
     Returns True if either player has at least one 4-in-a-row.
     """
-    if countSequence(bitboard_obj, HUMAN_PLAYER, 4) >= 1:
+    if countSequence(bitboard_obj, HUMAN_PLAYER, 4) > 0 or countSequence(bitboard_obj, AI_PLAYER, 4) > 0:
         return True
-    elif countSequence(bitboard_obj, AI_PLAYER, 4) >= 1:
-        return True
-    else:
-        return False
+    return False
 
 
 def blockOrWinMove(bitboard_obj):
@@ -128,7 +134,7 @@ def blockOrWinMove(bitboard_obj):
     If no such move exists, returns -1.
     """
 
-    # Step 1: Check if there's a winning move for either player
+    # Check if there's a winning move for either player or if a block is needed
     for col in range(BOARD_WIDTH):
         if canPlay(bitboard_obj, col):
             temp_board = bitboard_obj.copy()

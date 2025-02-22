@@ -1,9 +1,10 @@
-import random
+import os
 import time
 import math
 from copy import deepcopy
 import concurrent.futures
 import logging
+from random import random
 
 from board import BitBoard
 from minimaxAlphaBeta import minimax_alpha_beta
@@ -19,14 +20,9 @@ logging.basicConfig(
 # Global constants for bias calculations
 CENTER_COL = 3
 MAX_DISTANCE = 3
-BIAS_STRENGTH = 0.13 # Increased for stronger bias toward the center
+BIAS_STRENGTH = 0.13  # Increased for stronger bias toward the center
 
 
-def copy_board(bitboard):
-    """
-    Creates a copy of the given bitboard efficiently.
-    """
-    return deepcopy(bitboard)
 
 
 def get_move_column(move):
@@ -45,7 +41,7 @@ def guided_rollout_move(valid_moves, board_state):
     best_move = None
     best_score = -float('inf')
     for move in valid_moves:
-        new_board = copy_board(board_state)
+        new_board = board_state.copy()
         new_board.play_move(move)
         score = heuristic_evaluation(new_board)
         if score > best_score:
@@ -61,28 +57,24 @@ def heuristic_evaluation(board_state):
     return sum(bin(board_state.board2).count("1") - bin(board_state.board1).count("1"))
 
 
-def rollout_simulation(game_state, minimax_depth):
+def rollout_simulation(game_state):
     """
     Performs a rollout simulation using hybrid rollouts.
     """
-    board_state = copy_board(game_state)
+    board_state = game_state.copy()
 
     if gameIsOver(board_state):
         return EndValue(board_state, AI_PLAYER)
 
-    best_move, _ = minimax_alpha_beta(board_state, 2, -math.inf, math.inf, board_state.current_player)
-    if best_move is not None:
-        board_state.play_move(best_move)
-        if gameIsOver(board_state):
-            return EndValue(board_state, AI_PLAYER)
-
     current_player = HUMAN_PLAYER if board_state.current_player == AI_PLAYER else AI_PLAYER
 
     while not gameIsOver(board_state):
-        valid_moves = board_state.get_valid_moves()
-        if not valid_moves:
-            return 0.5
-        action = guided_rollout_move(valid_moves, board_state)
+        action = board_state.find_winning_or_blocking_move()
+        if action is None:
+            valid_moves = board_state.get_valid_moves()
+            if not valid_moves:
+                return 0.5
+            action = guided_rollout_move(valid_moves, board_state)
         board_state.current_player = current_player
         board_state.play_move(action)
         current_player = HUMAN_PLAYER if current_player == AI_PLAYER else AI_PLAYER
@@ -99,7 +91,7 @@ class Node:
         self.game_state = game_state
         self.done = done
         self.action_index = action_index
-        self.c = 1.3 # Adjusted exploration factor
+        self.c = 1.3  # Adjusted exploration factor
         self.starting_player = starting_player
 
     def getUCTscore(self):
@@ -113,7 +105,7 @@ class Node:
         center_bias = BIAS_STRENGTH * (MAX_DISTANCE - abs(move_col - CENTER_COL))
         return exploitation + exploration + center_bias
 
-    def explore(self, minimax_depth=3, min_rollouts=100000, max_time=6.0, batch_size=32):
+    def explore(self,min_rollouts=100000, max_time=5.0, batch_size=32):
         """
         Explores using parallelized guided rollouts with an immediate threat detection check.
         """
@@ -122,7 +114,7 @@ class Node:
         rollouts = 0
         batch = []
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() - 1) as executor:
             while True:
                 elapsed = time.perf_counter() - start_time
                 if rollouts >= min_rollouts or elapsed >= max_time:
@@ -135,11 +127,11 @@ class Node:
                 if not current.done:
                     valid_moves = current.game_state.get_valid_moves()
                     for action in valid_moves:
-                        new_board = copy_board(current.game_state)
+                        new_board = current.game_state.copy()
                         new_board.play_move(action)
                         done = gameIsOver(new_board)
                         current.child_nodes[action] = Node(new_board, done, current, action, self.starting_player)
-                future = executor.submit(rollout_simulation, current.game_state, minimax_depth)
+                future = executor.submit(rollout_simulation, current.game_state)
                 batch.append((future, current))
                 rollouts += 1
 
@@ -175,8 +167,12 @@ class Node:
     def movePlayer(self, playerMove):
         if playerMove in self.child_nodes:
             return self.child_nodes[playerMove]
-        new_board = copy_board(self.game_state)
+        new_board = self.game_state.copy()
         new_board.play_move(playerMove)
         done = gameIsOver(new_board)
         new_node = Node(new_board, done, self, playerMove, self.starting_player)
         self.child_nodes[playerMove] = new_node
+
+
+        self.child_nodes[playerMove] = new_node
+        return new_node
