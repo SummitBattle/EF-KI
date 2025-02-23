@@ -43,26 +43,52 @@ def playerWins(game_state):
         mainFunction()
     exit()
 
+def get_immediate_move(game_state):
+    """
+    Returns a tuple (ai_move, found) if an immediate threat move is found,
+    and None otherwise.
+    """
+    # Check for immediate win or block
+    move = game_state.find_winning_or_blocking_move()
+    if move is not None:
+        return move, True
+
+    # Check for enemy double threat
+    move = game_state.find_blocking_double_threat_move()
+    if move:
+        print("found enemy dt")
+        return move, True
+
+    # Check for AI double threat
+    move = game_state.find_double_threat_move()
+    if move:
+        print("found ai dt")
+        return move, True
+
+    return None, False
+
 
 def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
     """Handles the AI's turn."""
     global parent_node
 
-    # Check for immediate win or block
-    threat = game_state.find_winning_or_blocking_move()
-    if threat is not None:
-        ai_move = threat
+    ai_move, reset_parent = get_immediate_move(game_state)
+    if reset_parent:
         parent_node = None
     elif first_move:
-        ai_move = 3  # Middle column
+        ai_move = 3  # Middle column on the first move.
     elif move_count >= 15:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state, 8, -math.inf, math.inf, game_state.current_player)[0]
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(
+            game_state, 8, -math.inf, math.inf, game_state.current_player
+        )[0]
     else:
-        ai_move, _ = ConnectAlgorithm.start_MCTS(game_state, parent_node=parent_node, playerMove=last_human_move, human_starts=human_starts)
-
+        ai_move, _ = ConnectAlgorithm.start_MCTS(
+            game_state, parent_node=parent_node, playerMove=last_human_move, human_starts=human_starts
+        )
 
     row, col, win = game_state.play_move(ai_move)
     return game_state, win, ai_move
+
 
 
 def aiWins(game_state):

@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 
+from utility_functions import countSequence
+
 # Color definitions (for console output)
 RED = '\033[1;31;40m'
 RED_BG = '\033[0;31;47m'
@@ -186,3 +188,91 @@ class BitBoard:
                 return col  # Blocking move found
 
         return None  # No immediate winning or blocking move
+
+    def find_blocking_double_threat_move(self):
+        """
+        For each valid column, simulate the opponent playing that column *and then* making a second move.
+        If by playing in that column the opponent would have at least 2 immediate winning moves on the next turn,
+        then return that column index as the move to block the double threat.
+
+        Returns:
+            A column index (0-indexed) to block the double threat, or None if no such threat exists.
+        """
+        opponent = 2 if self.current_player == 1 else 1
+        # Iterate through every valid move (column) that can be played.
+        for col in self.get_valid_moves():
+            # Copy board and simulate opponent playing in col.
+            board_sim = self.copy()
+            board_sim.current_player = opponent  # Force opponent to move.
+            try:
+                _, _, win_first = board_sim.play_move(col)
+            except ValueError:
+                continue
+            # If opponent wins immediately by playing col, that’s an outright win—not a double threat.
+            if win_first:
+                continue
+
+            # Now simulate giving the opponent a second move (i.e. skipping our turn)
+            # Force the board to remain with the opponent.
+            board_sim.current_player = opponent
+            win_count = 0
+            for opp_col in board_sim.get_valid_moves():
+                test_board = board_sim.copy()
+                test_board.current_player = opponent
+                try:
+                    _, _, win_second = test_board.play_move(opp_col)
+                except ValueError:
+                    continue
+                if win_second:
+                    win_count += 1
+
+            # If by playing in column col the opponent would have at least 2 winning moves,
+            # then playing col ourselves would block that potential double threat.
+            if win_count >= 2:
+                return col
+
+        return None
+
+    def find_double_threat_move(self):
+        """
+        For each valid move available to the AI, simulate playing that move and then,
+        by skipping the opponent’s turn (i.e. forcing the turn back to the AI), count how many
+        immediate winning moves the AI would have. If any move yields at least 2 winning moves,
+        return that move (column index) as the one that creates a double threat.
+
+        Returns:
+            A column index (0-indexed) that creates a double threat for the AI, or None if no such move exists.
+        """
+        # Save the AI's identity.
+        ai_player = self.current_player
+
+        for col in self.get_valid_moves():
+            # Copy the board and simulate playing the candidate move.
+            board_after_move = self.copy()
+            # The play_move call switches the turn after playing.
+            _, _, immediate_win = board_after_move.play_move(col)
+
+            # If the move itself is an immediate win, that’s even better.
+            if immediate_win:
+                return col
+
+            # For simulation, force the turn back to the AI (i.e. skip the opponent).
+            board_after_move.current_player = ai_player
+
+            win_count = 0
+            # Check each valid move from this new state.
+            for next_col in board_after_move.get_valid_moves():
+                test_board = board_after_move.copy()
+                test_board.current_player = ai_player  # Force the AI to play again.
+                try:
+                    _, _, win_next = test_board.play_move(next_col)
+                except ValueError:
+                    continue
+                if win_next:
+                    win_count += 1
+
+            # If at least 2 moves yield an immediate win, we have created a double threat.
+            if win_count >= 2:
+                return col
+
+        return None
