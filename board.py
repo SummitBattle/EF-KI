@@ -1,4 +1,5 @@
 import os
+import random
 
 import numpy as np
 
@@ -28,18 +29,34 @@ FULL_MASK = sum(column_mask)
 
 
 class BitBoard:
+    zobrist_table = {}  # Store random values for hashing
+
+    @classmethod
+    def initialize_zobrist(cls):
+        """Initialize Zobrist Hashing Table."""
+        cls.zobrist_table = {}
+        for col in range(BOARD_WIDTH):
+            for row in range(BOARD_HEIGHT):
+                for player in (1, 2):
+                    cls.zobrist_table[(col, row, player)] = random.getrandbits(64)  # 64-bit random number
+
     def __init__(self):
-        # Two bitboards: one for each player (Player 1 will be represented with 'x' and Player 2 with 'o')
-        self.board1 = 0  # bits where Player 1 has played
-        self.board2 = 0  # bits where Player 2 has played
-        self.mask = 0  # overall occupancy (board1 OR board2)
-        self.current_player = 1  # Player 1 starts
-        self.moves = []  # history of moves (columns played)
-        self.lowest_empty_row = [BOARD_HEIGHT - 1] * BOARD_WIDTH  # Track the next available row per column
+        self.board1 = 0
+        self.board2 = 0
+        self.mask = 0
+        self.current_player = 1
+        self.moves = []
+        self.lowest_empty_row = [BOARD_HEIGHT - 1] * BOARD_WIDTH
+        self.hash_value = 0  # Store the hash of the board
+
 
     def can_play(self, col):
-        """Check if there is room in the given column (0-indexed)."""
-        return (self.mask & top_mask[col]) == 0
+            """Check if there is room in the given column (0-indexed)."""
+            return (self.mask & top_mask[col]) == 0
+
+    def hash(self):
+        """Returns the unique hash of the current board state."""
+        return self.hash_value
 
     def get_valid_moves(self):
         """Return a list of valid columns (0-indexed) where a move can be made."""
@@ -53,8 +70,14 @@ class BitBoard:
           - Returns the (row, col) where the piece was placed and a flag indicating a win.
         """
         if not self.can_play(col):
-            raise ValueError(f"Column {col + 1} is full")
+            print(f"cannot play{col}")
+            # Find the closest playable column to the center (column 3 in a 7-wide board)
+            valid_moves = self.get_valid_moves()
+            if not valid_moves:
+                raise ValueError("No valid moves available")
 
+            # Sort by proximity to the center column (3)
+            col = min(valid_moves, key=lambda c: abs(c - 3))
         # Get the row and bit corresponding to the move
         row = self.lowest_empty_row[col]
         move = (self.mask + bottom_mask[col]) & column_mask[col]

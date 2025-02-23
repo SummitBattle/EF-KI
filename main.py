@@ -56,13 +56,11 @@ def get_immediate_move(game_state):
     # Check for enemy double threat
     move = game_state.find_blocking_double_threat_move()
     if move:
-        print("found enemy dt")
         return move, True
 
     # Check for AI double threat
     move = game_state.find_double_threat_move()
     if move:
-        print("found ai dt")
         return move, True
 
     return None, False
@@ -78,9 +76,9 @@ def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
     elif first_move:
         ai_move = 3  # Middle column on the first move.
     elif move_count >= 15:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(
-            game_state, 8, -math.inf, math.inf, game_state.current_player
-        )[0]
+        ai_move = minimaxAlphaBeta.best_move_with_time_limit(game_state,4.0)
+        print(ai_move)
+
     else:
         ai_move, _ = ConnectAlgorithm.start_MCTS(
             game_state, parent_node=parent_node, playerMove=last_human_move, human_starts=human_starts
@@ -93,7 +91,6 @@ def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
 
 def aiWins(game_state):
     """Handles the AI win scenario."""
-    game_state.print_board()
     print(RED + "AI WINS !!!!\n" + WHITE)
     playagain = input(YELLOW + 'DO YOU WANT TO PLAY AGAIN (y/n)? ' + WHITE).lower() == 'y'
     if playagain:
