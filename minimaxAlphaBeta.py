@@ -1,81 +1,45 @@
-import time
-from utility_functions import utilityValue, AI_PLAYER, gameIsOver
+from utility_functions import AI_PLAYER, gameIsOver, utilityValue
 
-# Transposition Table (Memoization)
-transposition_table = {}
-
-def minimax_alpha_beta(bitboard, depth, alpha, beta, maximizingPlayer):
-    board_hash = bitboard.hash()  # Ensure your BitBoard has a fast hash function
-
-    # Check if the board state is already evaluated
-    if board_hash in transposition_table:
-        return transposition_table[board_hash]
-
-    valid_moves = bitboard.get_valid_moves()
-    if depth == 0 or gameIsOver(bitboard) or not valid_moves:
-        return None, utilityValue(bitboard, AI_PLAYER)
-
+def minimax_alpha_beta(bitboard, depth, maximizingPlayer, alpha=float('-inf'), beta=float('inf'), transposition_table=None):
     best_move = None
     best_score = float('-inf') if maximizingPlayer else float('inf')
 
-    # Move Ordering: Prioritize center moves first
+    # Check if the game is over or if max depth is reached
+    if depth == 0 or gameIsOver(bitboard):
+        return None, utilityValue(bitboard, AI_PLAYER)
+
+    valid_moves = bitboard.get_valid_moves()
+    if not valid_moves:
+        return None, 0  # No valid moves, return neutral score
+
+    # Move Ordering: Prioritize center moves for better pruning
     valid_moves.sort(key=lambda move: abs(move - 3))
 
-    if maximizingPlayer:
-        for move in valid_moves:
-            temp_board = bitboard.copy()
-            _, _, win = temp_board.play_move(move)
+    for move in valid_moves:
+        temp_board = bitboard.copy()
+        if not temp_board.can_play(move):
+            continue  # Skip invalid moves
 
-            if win:
-                transposition_table[board_hash] = (move, float('inf'))
-                return move, float('inf')
+        _, _, win = temp_board.play_move(move)
 
-            _, board_score = minimax_alpha_beta(temp_board, depth - 1, alpha, beta, False)
+        # If this move results in an immediate win, return it
+        if win:
+            return move, float('inf') if maximizingPlayer else float('-inf')
 
+        _, board_score = minimax_alpha_beta(temp_board, depth - 1, not maximizingPlayer, alpha, beta, transposition_table)
+
+        if maximizingPlayer:
             if board_score > best_score:
                 best_score = board_score
                 best_move = move
-
             alpha = max(alpha, best_score)
-            if alpha >= beta:
-                break  # Alpha-beta pruning
-
-    else:
-        for move in valid_moves:
-            temp_board = bitboard.copy()
-            _, _, win = temp_board.play_move(move)
-
-            if win:
-                transposition_table[board_hash] = (move, float('-inf'))
-                return move, float('-inf')
-
-            _, board_score = minimax_alpha_beta(temp_board, depth - 1, alpha, beta, True)
-
+        else:
             if board_score < best_score:
                 best_score = board_score
                 best_move = move
-
             beta = min(beta, best_score)
-            if alpha >= beta:
-                break  # Alpha-beta pruning
 
-    # Store result in transposition table
-    transposition_table[board_hash] = (best_move, best_score)
+        if alpha >= beta:
+            break  # Alpha-beta pruning
+
     return best_move, best_score
-
-
-def best_move_with_time_limit(bitboard, time_limit=2.0):
-    """
-    Iterative Deepening: Search with increasing depth until time runs out.
-    """
-    start_time = time.time()
-    best_move = None
-    depth = 1
-
-    while time.time() - start_time < time_limit:
-        move, _ = minimax_alpha_beta(bitboard, depth, float('-inf'), float('inf'), True)
-        if move is not None:
-            best_move = move  # Store best move from the last completed depth
-        depth += 1  # Increase depth for next iteration
-
-    return best_move

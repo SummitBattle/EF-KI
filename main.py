@@ -75,8 +75,8 @@ def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
         parent_node = None
     elif first_move:
         ai_move = 3  # Middle column on the first move.
-    elif move_count >= 15:
-        ai_move = minimaxAlphaBeta.best_move_with_time_limit(game_state,4.0)
+    elif move_count >= 20:
+        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state,10,game_state.current_player)[0]
         print(ai_move)
 
     else:
