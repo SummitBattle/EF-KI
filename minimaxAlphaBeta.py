@@ -1,45 +1,38 @@
-from utility_functions import AI_PLAYER, gameIsOver, utilityValue
+from random import shuffle
 
-def minimax_alpha_beta(bitboard, depth, maximizingPlayer, alpha=float('-inf'), beta=float('inf'), transposition_table=None):
-    best_move = None
-    best_score = float('-inf') if maximizingPlayer else float('inf')
+from utility_functions import gameIsOver, can_play, BOARD_WIDTH, AI_PLAYER
 
-    # Check if the game is over or if max depth is reached
-    if depth == 0 or gameIsOver(bitboard):
-        return None, utilityValue(bitboard, AI_PLAYER)
 
-    valid_moves = bitboard.get_valid_moves()
-    if not valid_moves:
-        return None, 0  # No valid moves, return neutral score
+def getValidMoves(bitboard_obj):
+    return [col for col in range(BOARD_WIDTH) if can_play(bitboard_obj, col)]
 
-    # Move Ordering: Prioritize center moves for better pruning
-    valid_moves.sort(key=lambda move: abs(move - 3))
 
-    for move in valid_moves:
-        temp_board = bitboard.copy()
-        if not temp_board.can_play(move):
-            continue  # Skip invalid moves
+def MiniMaxAlphaBeta(bitboard_obj, depth, maximizingPlayer, alpha=float('-inf'), beta=float('inf')):
+    validMoves = getValidMoves(bitboard_obj)
+    shuffle(validMoves)
+    bestMove = None
+    bestScore = float('-inf') if maximizingPlayer else float('inf')
 
-        _, _, win = temp_board.play_move(move)
+    if depth == 0 or gameIsOver(bitboard_obj):
+        return None, utilityValue(bitboard_obj, AI_PLAYER)
 
-        # If this move results in an immediate win, return it
-        if win:
-            return move, float('inf') if maximizingPlayer else float('-inf')
-
-        _, board_score = minimax_alpha_beta(temp_board, depth - 1, not maximizingPlayer, alpha, beta, transposition_table)
+    for move in validMoves:
+        tempBoard = bitboard_obj.copy()
+        tempBoard.play_move(move)
+        _, boardScore = MiniMaxAlphaBeta(tempBoard, depth - 1, not maximizingPlayer, alpha, beta)
 
         if maximizingPlayer:
-            if board_score > best_score:
-                best_score = board_score
-                best_move = move
-            alpha = max(alpha, best_score)
+            if boardScore > bestScore:
+                bestScore = boardScore
+                bestMove = move
+            alpha = max(alpha, bestScore)
         else:
-            if board_score < best_score:
-                best_score = board_score
-                best_move = move
-            beta = min(beta, best_score)
+            if boardScore < bestScore:
+                bestScore = boardScore
+                bestMove = move
+            beta = min(beta, bestScore)
 
-        if alpha >= beta:
+        if beta <= alpha:
             break  # Alpha-beta pruning
 
-    return best_move, best_score
+    return bestMove, bestScore

@@ -1,10 +1,7 @@
 
-import math
-
-import ConnectAlgorithm
-import minimaxAlphaBeta
+import MCTS_MS
 from board import *  # import the bitboard implementation
-
+from utility_functions import countSequence
 RED     = '\033[1;31;40m'
 BLUE_BG = '\033[0;34;47m'
 YELLOW  = '\033[1;33;40m'
@@ -58,34 +55,29 @@ def get_immediate_move(game_state):
     if move:
         return move, True
 
-    # Check for AI double threat
-    move = game_state.find_double_threat_move()
-    if move:
-        return move, True
-
     return None, False
 
 
 def aiTurn(game_state, move_count, last_human_move, human_starts, first_move):
     """Handles the AI's turn."""
     global parent_node
-
+    print(countSequence(game_state,1,2))
     ai_move, reset_parent = get_immediate_move(game_state)
+
     if reset_parent:
         parent_node = None
     elif first_move:
         ai_move = 3  # Middle column on the first move.
-    elif move_count >= 20:
-        ai_move = minimaxAlphaBeta.minimax_alpha_beta(game_state,10,game_state.current_player)[0]
-        print(ai_move)
+    elif move_count >= 40:
+        ai_move = minimaxAlphaBeta.MiniMaxAlphaBeta(game_state, 8, float("inf"), float("-inf"), game_state.current_player)[0]
 
     else:
-        ai_move, _ = ConnectAlgorithm.start_MCTS(
-            game_state, parent_node=parent_node, playerMove=last_human_move, human_starts=human_starts
-        )
+        ai_move = MCTS_MS.get_ai_move(game_state)
+
 
     row, col, win = game_state.play_move(ai_move)
     return game_state, win, ai_move
+
 
 
 

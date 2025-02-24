@@ -3,7 +3,6 @@ import random
 
 import numpy as np
 
-from utility_functions import countSequence
 
 # Color definitions (for console output)
 RED = '\033[1;31;40m'
@@ -49,10 +48,9 @@ class BitBoard:
         self.lowest_empty_row = [BOARD_HEIGHT - 1] * BOARD_WIDTH
         self.hash_value = 0  # Store the hash of the board
 
-
     def can_play(self, col):
-            """Check if there is room in the given column (0-indexed)."""
-            return (self.mask & top_mask[col]) == 0
+        """Check if there is room in the given column (0-indexed)."""
+        return (self.mask & top_mask[col]) == 0
 
     def hash(self):
         """Returns the unique hash of the current board state."""
@@ -70,14 +68,8 @@ class BitBoard:
           - Returns the (row, col) where the piece was placed and a flag indicating a win.
         """
         if not self.can_play(col):
-            print(f"cannot play{col}")
-            # Find the closest playable column to the center (column 3 in a 7-wide board)
-            valid_moves = self.get_valid_moves()
-            if not valid_moves:
-                raise ValueError("No valid moves available")
+            raise ValueError(f"Column {col} is full. Cannot play.")
 
-            # Sort by proximity to the center column (3)
-            col = min(valid_moves, key=lambda c: abs(c - 3))
         # Get the row and bit corresponding to the move
         row = self.lowest_empty_row[col]
         move = (self.mask + bottom_mask[col]) & column_mask[col]
@@ -142,7 +134,7 @@ class BitBoard:
         print("\t      -   -   -   -   -   -   -")
         # Print rows from top (row 6 is the extra bit; playable rows are 5 down to 0)
         for r in range(BOARD_HEIGHT - 1, -1, -1):
-            print(WHITE + "\t", r+1, ' ', end="")
+            print(WHITE + "\t", r + 1, ' ', end="")
             for col in range(BOARD_WIDTH):
                 # Compute the bit corresponding to row r in column col
                 bit = 1 << (col * COL_SIZE + r)
@@ -157,8 +149,6 @@ class BitBoard:
                 print("| " + piece, end=" ")
             print("|")
         print('')
-
-
 
     def copy(self):
         """
@@ -188,24 +178,21 @@ class BitBoard:
         """Return True if the board is completely filled."""
         return self.mask == FULL_MASK
 
-    def find_winning_or_blocking_move(bitboard):
+    def find_winning_or_blocking_move(self):
         """
         Finds a move that either wins the game or blocks the opponent's win.
         Returns the column index (0-indexed) of the best move or None if no immediate threat is found.
         """
-        for col in range(BOARD_WIDTH):
-            if not bitboard.can_play(col):
-                continue  # Skip full columns
-
+        for col in self.get_valid_moves():
             # Simulate move for the current player
-            temp_board = bitboard.copy()
+            temp_board = self.copy()
             _, _, win = temp_board.play_move(col)
             if win:
                 return col  # Winning move found
 
             # Simulate move for the opponent to check if they have a winning move
-            temp_board = bitboard.copy()
-            temp_board.current_player = 2 if bitboard.current_player == 1 else 1  # Switch to opponent
+            temp_board = self.copy()
+            temp_board.current_player = 2 if self.current_player == 1 else 1  # Switch to opponent
             _, _, opponent_win = temp_board.play_move(col)
             if opponent_win:
                 return col  # Blocking move found
@@ -230,7 +217,7 @@ class BitBoard:
             try:
                 _, _, win_first = board_sim.play_move(col)
             except ValueError:
-                continue
+                continue  # Skip if column became invalid (shouldn't happen due to get_valid_moves)
             # If opponent wins immediately by playing col, that’s an outright win—not a double threat.
             if win_first:
                 continue
@@ -287,10 +274,8 @@ class BitBoard:
             for next_col in board_after_move.get_valid_moves():
                 test_board = board_after_move.copy()
                 test_board.current_player = ai_player  # Force the AI to play again.
-                try:
-                    _, _, win_next = test_board.play_move(next_col)
-                except ValueError:
-                    continue
+                # Simulate playing next_col and check for win
+                _, _, win_next = test_board.play_move(next_col)
                 if win_next:
                     win_count += 1
 

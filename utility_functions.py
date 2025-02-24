@@ -5,73 +5,41 @@ COL_SIZE = BOARD_HEIGHT + 1  # = 7 (6 playable rows plus 1 extra bit per column)
 AI_PLAYER = 'o'
 HUMAN_PLAYER = 'x'
 
+from board import *
+
 
 def in_bounds(r, c):
     """Return True if row r and column c are within the playable board."""
     return 0 <= r < BOARD_HEIGHT and 0 <= c < BOARD_WIDTH
 
 
-def sequenceExists(pos, r, c, dr, dc, length):
-    """
-    Check if starting at (r, c) and proceeding in direction (dr, dc)
-    there are 'length' consecutive bits set in the bitboard 'pos'.
-    """
-    end_r = r + (length - 1) * dr
-    end_c = c + (length - 1) * dc
-    if not in_bounds(end_r, end_c):  # Check if the sequence will go out of bounds
-        return False
-
-    # Check for each cell in the sequence
+def sequence_exists(pos, r, c, dr, dc, length):
     for i in range(length):
-        rr = r + i * dr
-        cc = c + i * dc
-        bit = 1 << (cc * COL_SIZE + rr)
+        nr, nc = r + i * dr, c + i * dc
+        if not (0 <= nr < BOARD_HEIGHT and 0 <= nc < BOARD_WIDTH):
+            return False
+        bit = 1 << (nc * COL_SIZE + nr)
         if not (pos & bit):
             return False
-
     return True
 
+def countSequence(bitboard, player, length):
+    """Count all sequences of exactly 'length' for the player."""
+    pos = bitboard.board1 if player == 1 else bitboard.board2
+    count = 0
+    directions = [
+        (1, 0),   # Vertical
+        (0, 1),   # Horizontal
+        (1, 1),   # Diagonal down-right
+        (1, -1),  # Diagonal down-left
+    ]
 
-def countSequence(bitboard_obj, player, length):
-    """
-    Count the number of sequences of consecutive pieces (of the given 'length')
-    for the given player in the bitboard.
-
-    The function inspects each playable cell; if that cell is occupied by the player,
-    it checks in all four directions:
-       - Vertical (downward): dr = 1, dc = 0
-       - Horizontal (to the right): dr = 0, dc = 1
-       - Positive diagonal (down-right): dr = 1, dc = 1
-       - Negative diagonal (up-right): dr = -1, dc = 1
-    """
-    pos = bitboard_obj.board1 if player == HUMAN_PLAYER else bitboard_obj.board2
-    totalCount = 0
-
-    # Use a set to avoid re-checking the same position in different directions
-    checked_positions = set()
-
-    # Loop over all playable cells (rows 0 to BOARD_HEIGHT-1, cols 0 to BOARD_WIDTH-1)
-    for r in range(BOARD_HEIGHT):
-        for c in range(BOARD_WIDTH):
-            if (r, c) in checked_positions:
-                continue  # Skip already checked cells
-            # Compute the bit for cell (r, c)
-            bit = 1 << (c * COL_SIZE + r)
-            if pos & bit:
-                # Check all directions (vertical, horizontal, diagonals)
-                directions = [(1, 0), (0, 1), (1, 1), (-1, 1)]
-                for dr, dc in directions:
-                    if sequenceExists(pos, r, c, dr, dc, length):
-                        totalCount += 1
-                        # Mark all positions in this sequence as checked
-                        for i in range(length):
-                            rr = r + i * dr
-                            cc = c + i * dc
-                            checked_positions.add((rr, cc))
-
-    return totalCount
-
-
+    for dr, dc in directions:
+        for r in range(BOARD_HEIGHT):
+            for c in range(BOARD_WIDTH):
+                if sequence_exists(pos, r, c, dr, dc, length):
+                    count += 1
+    return count
 def EndValue(bitboard_obj, player):
     """
     Returns 1 if the given player has at least one 4-in-a-row,
@@ -124,32 +92,32 @@ def gameIsOver(bitboard_obj):
     return False
 
 
+
 def blockOrWinMove(bitboard_obj):
-    """
-    Returns the first column that either:
-    1. Wins the game for the current player.
-    2. Blocks the opponent from winning.
+    ai = AI_PLAYER
+    human = HUMAN_PLAYER
 
-    If no such move exists, returns -1.
-    """
-
-    # Check if there's a winning move for either player or if a block is needed
+    # Check for immediate AI win
     for col in range(BOARD_WIDTH):
         if canPlay(bitboard_obj, col):
             temp_board = bitboard_obj.copy()
-
-            # Check if AI wins by playing here
             temp_board.play_move(col)
-            if countSequence(temp_board, AI_PLAYER, 4) > 0:
-                return col  # Play the winning move
+            if countSequence(temp_board, ai, 4) > 0:
+                return col  # Winning move
 
-            # Check if Human wins by playing here (so we need to block)
+    # Check for human win needing block
+    for col in range(BOARD_WIDTH):
+        if canPlay(bitboard_obj, col):
+            temp_board = bitboard_obj.copy()
             temp_board.play_move(col)
-            if countSequence(temp_board, HUMAN_PLAYER, 4) > 0:
-                return col  # Block the opponent’s win
+            # Check all human moves after AI's move
+            for human_col in temp_board.get_valid_moves():
+                human_temp = temp_board.copy()
+                human_temp.play_move(human_col)
+                if countSequence(human_temp, human, 4) > 0:
+                    return col  # Block this column
 
-    return -1  # No immediate win or threat found
-
+    return -1  # No immediate win/block
 
 def canPlay(bitboard_obj, col):
     """
